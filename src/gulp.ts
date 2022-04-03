@@ -21,15 +21,12 @@ import { LabelReader } from './labels';
 import { SObjectReader } from './sobjects';
 import { StubFS } from './stubfs';
 
-export default class Gulp {
-  public async update(
+export class Gulp {
+  public static async update(
     connection: Connection,
     workspace: string,
     namespaces: string[] = []
   ): Promise<void> {
-    //connection.metadata.pollTimeout = 10 * 60 * 1000;
-    //connection.metadata.pollInterval = 15 * 1000;
-
     const orgNamespace = await this.queryOrgNamespace(connection);
     if (orgNamespace == null) return;
     const uniqueNamespaces = new Set(namespaces);
@@ -91,7 +88,7 @@ export default class Gulp {
     return stubFS.sync();
   }
 
-  private async queryOrgNamespace(
+  private static async queryOrgNamespace(
     connection: Connection
   ): Promise<string | null> {
     const organisations = await connection
