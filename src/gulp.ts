@@ -28,7 +28,6 @@ export class Gulp {
     namespaces: string[] = []
   ): Promise<void> {
     const orgNamespace = await this.queryOrgNamespace(connection);
-    if (orgNamespace == null) return;
     const uniqueNamespaces = new Set(namespaces);
     if (orgNamespace != null) uniqueNamespaces.delete(orgNamespace);
     const otherNamespaces = Array.from(uniqueNamespaces.keys());

@@ -29,13 +29,13 @@ const stat = promisify(fs.stat);
 
 export class SObjectReader {
   private connection: Connection;
-  private orgNamespace: string;
+  private orgNamespace: string | null;
   private namespaces: Set<string>;
   private stubFS: StubFS;
 
   public constructor(
     connection: Connection,
-    orgNamespace: string,
+    orgNamespace: string | null,
     namespaces: string[],
     stubFS: StubFS
   ) {
@@ -57,11 +57,11 @@ export class SObjectReader {
     }
   }
 
-  private async writeByNamespace(namespace: string): Promise<void> {
+  private async writeByNamespace(namespace: string | null): Promise<void> {
     const customObjectNames = await this.queryCustomObjects(namespace);
 
     const tmpDir = await this.retrieveCustomObjects(customObjectNames);
-    const targetDirectory = namespace === null ? 'unmanged' : namespace;
+    const targetDirectory = namespace === null ? 'unmanaged' : namespace;
     const alienNamespaces = new Set(this.namespaces);
     if (namespace !== null) {
       alienNamespaces.delete(namespace);
@@ -159,7 +159,9 @@ ${value.replace(/^<fields>\s/, '').replace(/\s<\/fields>$/, '')}
     return files.reduce((a, b) => a.concat(b), []);
   }
 
-  private async queryCustomObjects(namespace: string): Promise<EntityName[]> {
+  private async queryCustomObjects(
+    namespace: string | null
+  ): Promise<EntityName[]> {
     const customObjects = await this.connection.tooling
       .sobject('EntityDefinition')
       .find<CustomObjectDetail>(
@@ -270,7 +272,7 @@ class EntityName {
     }
   }
 
-  public defaultNamespace(namespace: string): EntityName {
+  public defaultNamespace(namespace: string | null): EntityName {
     if (namespace != null && this.namespace == null) {
       this.namespace = namespace;
     }

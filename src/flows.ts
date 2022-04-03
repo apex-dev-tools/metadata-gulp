@@ -19,13 +19,13 @@ import { wrapError } from './error';
 
 export class FlowReader {
   private connection: Connection;
-  private orgNamespace: string;
+  private orgNamespace: string | null;
   private namespaces: string[];
   private stubFS: StubFS;
 
   public constructor(
     connection: Connection,
-    orgNamespace: string,
+    orgNamespace: string | null,
     namespaces: string[],
     stubFS: StubFS
   ) {
