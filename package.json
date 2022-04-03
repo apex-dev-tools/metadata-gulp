@@ -1,8 +1,14 @@
 {
-  "name": "typescript-npm-package-template",
-  "version": "0.0.0-development",
-  "description": "A template for creating npm packages using TypeScript and VSCode",
-  "main": "./lib/src/index.js",
+  "name": "apexlink-gulp",
+  "version": "1.0.0",
+  "description": "Library for downloading Salesforce metdata suitable for use with apexlink",
+  "author": {
+    "name": "Kevin Jones",
+    "email": "nawforce@gmail.com",
+    "url": "https://github.com/nawforce"
+  },
+  "main": "./lib/gulp.js",
+  "license": "BSD-3-Clause",
   "files": [
     "lib/**/*"
   ],
@@ -20,27 +26,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/nawforce/typescript-npm-package-template.git"
-  },
-  "license": "MIT",
-  "author": {
-    "name": "Kevin Jones",
-    "email": "nawforce@users.noreply.github.com",
-    "url": "https://github.com/nawforce"
+    "url": "git+https://github.com/nawforce/apex-link-gulp.git"
   },
   "engines": {
     "node": ">=12.0"
   },
   "keywords": [
-    "boilerplate",
-    "template",
-    "typescript",
-    "vscode",
-    "jest",
-    "husky",
-    "commitizen",
-    "semantic-release",
-    "codecov"
+    "salesforce",
+    "apex",
+    "apexlink"
   ],
   "bugs": {
     "url": "https://github.com/nawforce/typescript-npm-package-template/issues"
