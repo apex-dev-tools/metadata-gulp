@@ -20,9 +20,13 @@ import { ClassReader } from './classes';
 import { LabelReader } from './labels';
 import { SObjectReader } from './sobjects';
 import { StubFS } from './stubfs';
+import { Logger } from './logger';
+
+export { Logger, LoggerStage } from './logger';
 
 export class Gulp {
   public static async update(
+    logger: Logger,
     connection: Connection,
     workspace: string,
     namespaces: string[] = []
@@ -41,6 +45,7 @@ export class Gulp {
       stubFS
     ).run();
     const classesReader = new ClassReader(
+      logger,
       connection,
       orgNamespace,
       otherNamespaces,
@@ -81,7 +86,7 @@ export class Gulp {
     };
     let err: keyof typeof results;
     for (err in results) {
-      if (results[err] !== undefined) throw results[err];
+      if (results[err]) throw results[err];
     }
 
     return stubFS.sync();
