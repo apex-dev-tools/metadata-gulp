@@ -13,7 +13,7 @@
  */
 
 import * as path from 'path';
-import { Connection, ExecuteAnonymousResult } from 'jsforce';
+import { Connection } from 'jsforce';
 import { StubFS } from './stubfs';
 import { wrapError } from './error';
 import { chunk, foldLeft } from './arrays';
