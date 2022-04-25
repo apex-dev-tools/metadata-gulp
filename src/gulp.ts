@@ -12,17 +12,17 @@
     derived from this software without specific prior written permission.
  */
 
-import { Connection as JSConnection } from 'jsforce';
 import { ComponentReader } from './components';
 import { FlowReader } from './flows';
 import { PageReader } from './pages';
 import { ClassReader } from './classes';
 import { LabelReader } from './labels';
-import { SObjectReader } from './sobjects';
+import { CustomSObjectReader } from './customSObjects';
 import { StubFS } from './stubfs';
 import { Logger } from './logger';
 import { AuthInfo, Connection } from '@salesforce/core';
 import { ConfigUtil } from './configUtils';
+import { StandardSObjectReader } from './standardSObjects';
 
 export { Logger, LoggerStage } from './logger';
 
@@ -81,12 +81,9 @@ export class Gulp {
   }
 
   private async getOrgNamespace(
-    workspacePath: string
+    connection: Connection
   ): Promise<string | null | undefined> {
-    const localConnection = await this.getConnection(workspacePath);
-    if (localConnection == null) return undefined;
-
-    const organisations = await localConnection
+    const organisations = await connection
       .sobject('Organization')
       .find<Organization>('', 'NamespacePrefix')
       .execute();
@@ -97,14 +94,14 @@ export class Gulp {
 
   public async getOrgPackageNamespaces(
     workspacePath: string,
-    connection: JSConnection | null
+    connection: Connection | null
   ): Promise<NamespaceInfo[]> {
     const localConnection =
       connection || (await this.getConnection(workspacePath));
     if (localConnection == null)
       throw new Error('There is no default org available to query');
 
-    const orgNamespace = await this.getOrgNamespace(workspacePath);
+    const orgNamespace = await this.getOrgNamespace(localConnection);
     if (orgNamespace === undefined)
       throw new Error('Unable to query org default namespace');
 
@@ -153,8 +150,7 @@ export class Gulp {
   public async update(
     workspacePath: string,
     logger: Logger,
-    connection: JSConnection | null,
-    workspace: string,
+    connection: Connection | null,
     namespaces: string[] = []
   ): Promise<boolean> {
     const localConnection =
@@ -162,13 +158,13 @@ export class Gulp {
     if (localConnection == null)
       throw new Error('There is no default org available to query');
 
-    const orgNamespace = await this.getOrgNamespace(workspacePath);
+    const orgNamespace = await this.getOrgNamespace(localConnection);
     if (orgNamespace === undefined) return false;
     const uniqueNamespaces = new Set(namespaces);
     if (orgNamespace != null) uniqueNamespaces.delete(orgNamespace);
     const otherNamespaces = Array.from(uniqueNamespaces.keys());
 
-    const stubFS = new StubFS(workspace);
+    const stubFS = new StubFS(workspacePath);
 
     const labelsReader = new LabelReader(
       localConnection,
@@ -183,7 +179,13 @@ export class Gulp {
       otherNamespaces,
       stubFS
     ).run();
-    const sobjectReader = new SObjectReader(
+    const standardSObjectReader = new StandardSObjectReader(
+      localConnection,
+      orgNamespace,
+      otherNamespaces,
+      stubFS
+    ).run();
+    const customSOobjectReader = new CustomSObjectReader(
       localConnection,
       orgNamespace,
       otherNamespaces,
@@ -211,7 +213,8 @@ export class Gulp {
     const results = {
       labels: await labelsReader,
       classes: await classesReader,
-      sobjects: await sobjectReader,
+      standardSObjects: await standardSObjectReader,
+      customSObjects: await customSOobjectReader,
       pages: await pageReader,
       componentReader: await componentReader,
       flowReader: await flowReader,

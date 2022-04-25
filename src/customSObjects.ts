@@ -23,11 +23,12 @@ import { XMLParser } from 'fast-xml-parser';
 import { StubFS } from './stubfs';
 import { wrapError } from './error';
 import * as rimraf from 'rimraf';
+import { CustomObjectDetail, EntityName, SObjectJSON } from './entity';
 
 const readdir = promisify(fs.readdir);
 const stat = promisify(fs.stat);
 
-export class SObjectReader {
+export class CustomSObjectReader {
   private connection: Connection;
   private orgNamespace: string | null;
   private namespaces: Set<string>;
@@ -206,88 +207,4 @@ ${value.replace(/^<fields>\s/, '').replace(/\s<\/fields>$/, '')}
     await decompress(zipBuffer, tmpDir);
     return tmpDir;
   }
-}
-
-interface CustomObjectDetail {
-  QualifiedApiName: string;
-}
-class EntityName {
-  public namespace: string | null;
-  public name: string;
-  public extension: string;
-
-  public constructor(
-    namespace: string | null,
-    name: string,
-    extension: string
-  ) {
-    this.namespace = namespace;
-    this.name = name;
-    this.extension = extension;
-  }
-
-  public static applySObject(name: string): EntityName | null {
-    const parts = name.split('__');
-    if (parts.length >= 2 && parts.length <= 3) {
-      const last = parts[parts.length - 1];
-      if (last === 'c' || last === 'mdt' || last === 'e' || last === 'b') {
-        if (parts.length === 2) {
-          return new EntityName(null, parts[0], parts[1]);
-        } else {
-          return new EntityName(parts[0], parts[1], parts[2]);
-        }
-      }
-    }
-    return null;
-  }
-
-  public static applyField(name: string): EntityName | null {
-    const parts = name.split('__');
-    if (parts.length >= 2 && parts.length <= 3) {
-      const last = parts[parts.length - 1];
-      if (last === 'c') {
-        if (parts.length === 2) {
-          return new EntityName(null, parts[0], parts[1]);
-        } else {
-          return new EntityName(parts[0], parts[1], parts[2]);
-        }
-      }
-    }
-    return null;
-  }
-
-  public fullName(): string {
-    if (this.namespace === null) {
-      return `${this.name}__${this.extension}`;
-    } else {
-      return `${this.namespace}__${this.name}__${this.extension}`;
-    }
-  }
-
-  public developerName(): string {
-    if (this.namespace === null) {
-      return `${this.name}`;
-    } else {
-      return `${this.namespace}__${this.name}`;
-    }
-  }
-
-  public defaultNamespace(namespace: string | null): EntityName {
-    if (namespace != null && this.namespace == null) {
-      this.namespace = namespace;
-    }
-    return this;
-  }
-}
-
-interface Field {
-  fullName: string;
-}
-
-interface CustomObject {
-  fields?: Field | Field[];
-}
-
-interface SObjectJSON {
-  CustomObject?: CustomObject;
 }
