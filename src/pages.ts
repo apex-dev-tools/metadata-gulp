@@ -48,14 +48,13 @@ export class PageReader {
   }
 
   private query(): string {
-    const conditions = this.namespaces.map(
-      namespace => `NamespacePrefix = '${namespace}'`
-    );
-    conditions.push(
-      `NamespacePrefix = ${
-        this.orgNamespace == null ? 'null' : "'" + this.orgNamespace + "'"
-      }`
-    );
+    const conditions = this.namespaces.map(namespace => {
+      if (namespace == 'unmanaged') {
+        return 'NamespacePrefix = null';
+      } else {
+        return `NamespacePrefix = '${namespace}'`;
+      }
+    });
     return conditions.join(' OR ');
   }
 
@@ -63,9 +62,9 @@ export class PageReader {
     const byNamespace: Map<string, PageInfo[]> = new Map();
 
     for (const page of pages) {
-      if (page.Markup !== '(hidden)') {
+      if (page.Markup != '(hidden)') {
         let namespacePages = byNamespace.get(page.NamespacePrefix);
-        if (namespacePages === undefined) {
+        if (namespacePages == undefined) {
           namespacePages = [];
           byNamespace.set(page.NamespacePrefix, namespacePages);
         }
@@ -74,7 +73,7 @@ export class PageReader {
     }
 
     byNamespace.forEach((namespacePages, namespace) => {
-      const targetDirectory = namespace === null ? 'unmanaged' : namespace;
+      const targetDirectory = namespace == null ? 'unmanaged' : namespace;
       for (const page of namespacePages) {
         this.stubFS.newFile(
           path.join(targetDirectory, 'pages', `${page.Name}.page`),

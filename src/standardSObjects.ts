@@ -78,7 +78,7 @@ export class StandardSObjectReader {
             if (fieldName) {
               this.stubFS.newFile(
                 path.join(
-                  fieldName.namespace === null
+                  fieldName.namespace == null
                     ? 'unmanaged'
                     : fieldName.namespace,
                   'objects',
@@ -95,7 +95,7 @@ export class StandardSObjectReader {
           });
         });
     } finally {
-      rimraf.sync(tmpDir);
+      rimraf.sync(tmpDir, { disableGlob: true });
     }
   }
 
@@ -114,10 +114,10 @@ export class StandardSObjectReader {
         const name = EntityName.applyField(field.fullName);
         if (name != null) {
           if (isUnmanaged) {
-            return name.namespace === null;
+            return name.namespace == null;
           } else {
             name.defaultNamespace(this.orgNamespace);
-            return name.namespace === namespace;
+            return name.namespace == namespace;
           }
         } else {
           return false;
@@ -156,7 +156,7 @@ export class StandardSObjectReader {
 
   private async queryStandardObjects(namespace: string): Promise<string[]> {
     const clause =
-      namespace === 'unmanaged'
+      namespace == 'unmanaged'
         ? "ManageableState = 'unmanaged'"
         : `NamespacePrefix = '${namespace}'`;
     const standardObjects = await this.connection.tooling.query<AggCustomField>(
@@ -197,7 +197,7 @@ export class StandardSObjectReader {
   }
 
   private isId(value: string): boolean {
-    return (value.length === 15 || value.length === 18) && value[5] === '0';
+    return (value.length == 15 || value.length == 18) && value[5] == '0';
   }
 }
 

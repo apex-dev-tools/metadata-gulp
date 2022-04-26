@@ -35,6 +35,7 @@ export class StubFS {
   }
 
   public async sync(): Promise<void> {
+    // Overwrite files only if they have changed to reduce thrash
     const allFiles = new Set(await this.ready);
     this.newFiles.forEach((contents, filePath) => {
       const targetPath = path.join(this.storePath, filePath);
@@ -43,17 +44,37 @@ export class StubFS {
 
       if (
         !fs.existsSync(targetPath) ||
-        fs.readFileSync(targetPath, 'utf8') !== contents
+        fs.readFileSync(targetPath, 'utf8') != contents
       ) {
         fs.writeFileSync(targetPath, contents);
       }
       allFiles.delete(targetPath);
     });
 
+    // Remove any old files (and directories) we no longer need
+    const directories = new Set<string>();
     allFiles.forEach(file => {
       fs.unlinkSync(file);
+      directories.add(path.dirname(file));
     });
+    this.rmDirs(Array.from(directories.values()));
     this.newFiles.clear();
+  }
+
+  private rmDirs(directories: string[]): void {
+    const parents = new Set<string>();
+    directories.forEach(dir => {
+      try {
+        fs.rmdirSync(dir);
+        parents.add(path.dirname(dir));
+      } catch (err) {
+        // Not needed
+      }
+    });
+    parents.delete(this.storePath);
+    if (parents.size > 0) {
+      this.rmDirs(Array.from(parents.values()));
+    }
   }
 
   private createStore(workspacePath: string): string {

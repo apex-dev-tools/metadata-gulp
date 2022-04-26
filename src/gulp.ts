@@ -23,6 +23,7 @@ import { Logger } from './logger';
 import { AuthInfo, Connection } from '@salesforce/core';
 import { ConfigUtil } from './configUtils';
 import { StandardSObjectReader } from './standardSObjects';
+import { Connection as JSConnection } from 'jsforce';
 
 export { Logger, LoggerStage } from './logger';
 
@@ -80,29 +81,17 @@ export class Gulp {
     return undefined;
   }
 
-  private async getOrgNamespace(
-    connection: Connection
-  ): Promise<string | null | undefined> {
-    const organisations = await connection
-      .sobject('Organization')
-      .find<Organization>('', 'NamespacePrefix')
-      .execute();
-
-    if (organisations.length === 1) return organisations[0].NamespacePrefix;
-    else return null;
-  }
-
   public async getOrgPackageNamespaces(
     workspacePath: string,
-    connection: Connection | null
+    connection: JSConnection | null
   ): Promise<NamespaceInfo[]> {
     const localConnection =
-      connection || (await this.getConnection(workspacePath));
+      connection || ((await this.getConnection(workspacePath)) as JSConnection);
     if (localConnection == null)
       throw new Error('There is no default org available to query');
 
     const orgNamespace = await this.getOrgNamespace(localConnection);
-    if (orgNamespace === undefined)
+    if (orgNamespace == undefined)
       throw new Error('Unable to query org default namespace');
 
     const results = await localConnection.tooling
@@ -128,7 +117,7 @@ export class Gulp {
           }`
         );
       });
-    if (orgNamespace !== null) {
+    if (orgNamespace != null) {
       infos.unshift(
         new NamespaceInfo(orgNamespace, 'The org default namespace')
       );
@@ -143,27 +132,31 @@ export class Gulp {
     return infos;
   }
 
-  private packageVersion(pkg: SubscriberPackageVersion): string {
-    return `${pkg.Name} (${pkg.MajorVersion}.${pkg.MinorVersion}.${pkg.PatchVersion}.${pkg.BuildNumber})`;
-  }
-
   public async update(
     workspacePath: string,
     logger: Logger,
-    connection: Connection | null,
+    connection: JSConnection | null,
     namespaces: string[] = []
-  ): Promise<boolean> {
+  ): Promise<void> {
     const localConnection =
-      connection || (await this.getConnection(workspacePath));
+      connection || ((await this.getConnection(workspacePath)) as JSConnection);
     if (localConnection == null)
-      throw new Error('There is no default org available to query');
+      throw new Error(
+        'There is no default org available to load metadata from'
+      );
 
     const orgNamespace = await this.getOrgNamespace(localConnection);
-    if (orgNamespace === undefined) return false;
-    const uniqueNamespaces = new Set(namespaces);
-    if (orgNamespace != null) uniqueNamespaces.delete(orgNamespace);
-    const otherNamespaces = Array.from(uniqueNamespaces.keys());
+    if (orgNamespace == undefined)
+      throw new Error('Could not obtain the org default namespace');
 
+    const uniqueNamespaces = new Set(namespaces);
+    if (orgNamespace != null && uniqueNamespaces.has('unmanaged')) {
+      throw new Error(
+        "The 'unmanaged' namespace should only be used on orgs without a default namespace"
+      );
+    }
+
+    const otherNamespaces = Array.from(uniqueNamespaces.keys());
     const stubFS = new StubFS(workspacePath);
 
     const labelsReader = new LabelReader(
@@ -225,12 +218,11 @@ export class Gulp {
     }
 
     await stubFS.sync();
-    return true;
   }
 
   private async getConnection(
     workspacePath: string
-  ): Promise<Connection | null> {
+  ): Promise<JSConnection | null> {
     const username = await ConfigUtil.getConfigValue(
       workspacePath,
       'defaultusername'
@@ -242,6 +234,22 @@ export class Gulp {
     } else {
       return null;
     }
+  }
+
+  private async getOrgNamespace(
+    connection: JSConnection
+  ): Promise<string | null | undefined> {
+    const organisations = await connection
+      .sobject('Organization')
+      .find<Organization>('', 'NamespacePrefix')
+      .execute();
+
+    if (organisations.length == 1) return organisations[0].NamespacePrefix;
+    else return undefined;
+  }
+
+  private packageVersion(pkg: SubscriberPackageVersion): string {
+    return `${pkg.Name} (${pkg.MajorVersion}.${pkg.MinorVersion}.${pkg.PatchVersion}.${pkg.BuildNumber})`;
   }
 }
 

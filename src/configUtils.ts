@@ -31,7 +31,7 @@ export class ConfigUtil {
       key,
       ConfigSource.Local
     );
-    if (!(value === null || value == undefined)) {
+    if (!(value == null || value == undefined)) {
       return ConfigSource.Local;
     }
     value = await ConfigUtil.getConfigValue(
@@ -39,7 +39,7 @@ export class ConfigUtil {
       key,
       ConfigSource.Global
     );
-    if (!(value === null || value == undefined)) {
+    if (!(value == null || value == undefined)) {
       return ConfigSource.Global;
     }
     return ConfigSource.None;
@@ -50,7 +50,7 @@ export class ConfigUtil {
     key: string,
     source?: ConfigSource.Global | ConfigSource.Local
   ): Promise<ConfigValue | undefined> {
-    if (source === undefined || source === ConfigSource.Local) {
+    if (source == undefined || source == ConfigSource.Local) {
       try {
         const myLocalConfig = await ConfigFile.create({
           isGlobal: false,
@@ -58,18 +58,18 @@ export class ConfigUtil {
           filename: 'sfdx-config.json',
         });
         const localValue = myLocalConfig.get(key);
-        if (!(localValue === null || localValue == undefined)) {
+        if (!(localValue == null || localValue == undefined)) {
           return localValue;
         }
       } catch (err) {
         return undefined;
       }
     }
-    if (source === undefined || source === ConfigSource.Global) {
+    if (source == undefined || source == ConfigSource.Global) {
       try {
         const aggregator = await ConfigAggregator.create();
         const globalValue = aggregator.getPropertyValue(key);
-        if (!(globalValue === null || globalValue == undefined)) {
+        if (!(globalValue == null || globalValue == undefined)) {
           return globalValue;
         }
       } catch (err) {

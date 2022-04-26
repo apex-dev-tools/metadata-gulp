@@ -51,14 +51,13 @@ export class LabelReader {
   }
 
   private labelsQuery(): string {
-    const conditions = this.namespaces.map(
-      namespace => `(NamespacePrefix = '${namespace}' AND IsProtected = false)`
-    );
-    conditions.push(
-      `NamespacePrefix = ${
-        this.orgNamespace == null ? 'null' : "'" + this.orgNamespace + "'"
-      }`
-    );
+    const conditions = this.namespaces.map(namespace => {
+      if (namespace == 'unmanaged') {
+        return 'NamespacePrefix = null';
+      } else {
+        return `(NamespacePrefix = '${namespace}' AND IsProtected = false)`;
+      }
+    });
     return conditions.join(' OR ');
   }
 
@@ -67,7 +66,7 @@ export class LabelReader {
 
     for (const label of labels) {
       let namespaceLabels = byNamespace.get(label.NamespacePrefix);
-      if (namespaceLabels === undefined) {
+      if (namespaceLabels == undefined) {
         namespaceLabels = [];
         byNamespace.set(label.NamespacePrefix, namespaceLabels);
       }
@@ -75,7 +74,7 @@ export class LabelReader {
     }
 
     byNamespace.forEach((namespaceLabels, namespace) => {
-      const targetDirectory = namespace === null ? 'unmanaged' : namespace;
+      const targetDirectory = namespace == null ? 'unmanaged' : namespace;
       this.stubFS.newFile(
         path.join(targetDirectory, 'CustomLabels.labels-meta.xml'),
         this.createLabels(namespaceLabels)

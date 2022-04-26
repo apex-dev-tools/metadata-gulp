@@ -48,14 +48,13 @@ export class ComponentReader {
   }
 
   private query(): string {
-    const conditions = this.namespaces.map(
-      namespace => `NamespacePrefix = '${namespace}'`
-    );
-    conditions.push(
-      `NamespacePrefix = ${
-        this.orgNamespace == null ? 'null' : "'" + this.orgNamespace + "'"
-      }`
-    );
+    const conditions = this.namespaces.map(namespace => {
+      if (namespace == 'unmanaged') {
+        return 'NamespacePrefix = null';
+      } else {
+        return `NamespacePrefix = '${namespace}'`;
+      }
+    });
     return conditions.join(' OR ');
   }
 
@@ -63,9 +62,9 @@ export class ComponentReader {
     const byNamespace: Map<string, ComponentInfo[]> = new Map();
 
     for (const component of components) {
-      if (component.Markup !== '(hidden)') {
+      if (component.Markup != '(hidden)') {
         let namespaceComponents = byNamespace.get(component.NamespacePrefix);
-        if (namespaceComponents === undefined) {
+        if (namespaceComponents == undefined) {
           namespaceComponents = [];
           byNamespace.set(component.NamespacePrefix, namespaceComponents);
         }
@@ -74,7 +73,7 @@ export class ComponentReader {
     }
 
     byNamespace.forEach((namespaceComponents, namespace) => {
-      const targetDirectory = namespace === null ? 'unmanaged' : namespace;
+      const targetDirectory = namespace == null ? 'unmanaged' : namespace;
       for (const component of namespaceComponents) {
         this.stubFS.newFile(
           path.join(

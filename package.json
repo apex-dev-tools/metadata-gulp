@@ -41,11 +41,11 @@
   },
   "homepage": "https://github.com/nawforce/typescript-npm-package-template#readme",
   "dependencies": {
-    "@salesforce/core": "^2.36.1",
+    "@salesforce/core": "2.36.1",
     "decompress": "4.2.1",
     "fast-xml-parser": "4.0.4",
     "jsforce": "1.11.0",
-    "rimraf": "^3.0.2"
+    "rimraf": "3.0.2"
   },
   "devDependencies": {
     "@types/decompress": "^4.2.4",

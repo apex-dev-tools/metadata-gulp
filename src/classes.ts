@@ -42,9 +42,6 @@ export class ClassReader {
 
   public async run(): Promise<Error | null> {
     const allNamespaces = new Set<string>(this.namespaces);
-    // TODO: Re-enable?
-    // if (this.orgNamespace != null) allNamespaces.add(this.orgNamespace);
-
     const result = foldLeft<string, Promise<Error | null>>(
       [...allNamespaces],
       Promise.resolve(null)
@@ -163,21 +160,10 @@ export class ClassReader {
   private write(classes: ClassInfo[]): void {
     const byNamespace: Map<string, ClassInfo[]> = new Map();
 
-    console.log(`Class count: ${classes.length}`);
-    console.log(
-      `Has it: ${
-        classes.find(value => value.Name == 'ffasync_ProcessService') !==
-        undefined
-          ? 'true'
-          : 'false'
-      }`
-    );
-
     for (const cls of classes) {
-      console.log(`${cls.NamespacePrefix} ${cls.Name} ${cls.Body.length}`);
-      if (cls.Body !== '(hidden)') {
+      if (cls.Body != '(hidden)') {
         let namespaceClasses = byNamespace.get(cls.NamespacePrefix);
-        if (namespaceClasses === undefined) {
+        if (namespaceClasses == undefined) {
           namespaceClasses = [];
           byNamespace.set(cls.NamespacePrefix, namespaceClasses);
         }
@@ -186,9 +172,8 @@ export class ClassReader {
     }
 
     byNamespace.forEach((namespaceClasses, namespace) => {
-      const targetDirectory = namespace === null ? 'unmanaged' : namespace;
+      const targetDirectory = namespace == null ? 'unmanaged' : namespace;
       for (const cls of namespaceClasses) {
-        console.log(`Stub ${cls.Name} ${cls.Body.length}`);
         this.stubFS.newFile(
           path.join(targetDirectory, 'classes', `${cls.Name}.cls`),
           cls.Body

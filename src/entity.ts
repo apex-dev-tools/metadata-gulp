@@ -34,8 +34,8 @@ export class EntityName {
     const parts = name.split('__');
     if (parts.length >= 2 && parts.length <= 3) {
       const last = parts[parts.length - 1];
-      if (last === 'c' || last === 'mdt' || last === 'e' || last === 'b') {
-        if (parts.length === 2) {
+      if (last == 'c' || last == 'mdt' || last == 'e' || last == 'b') {
+        if (parts.length == 2) {
           return new EntityName(null, parts[0], parts[1]);
         } else {
           return new EntityName(parts[0], parts[1], parts[2]);
@@ -49,8 +49,8 @@ export class EntityName {
     const parts = name.split('__');
     if (parts.length >= 2 && parts.length <= 3) {
       const last = parts[parts.length - 1];
-      if (last === 'c') {
-        if (parts.length === 2) {
+      if (last == 'c') {
+        if (parts.length == 2) {
           return new EntityName(null, parts[0], parts[1]);
         } else {
           return new EntityName(parts[0], parts[1], parts[2]);
@@ -61,7 +61,7 @@ export class EntityName {
   }
 
   public fullName(): string {
-    if (this.namespace === null) {
+    if (this.namespace == null) {
       return `${this.name}__${this.extension}`;
     } else {
       return `${this.namespace}__${this.name}__${this.extension}`;
@@ -69,7 +69,7 @@ export class EntityName {
   }
 
   public developerName(): string {
-    if (this.namespace === null) {
+    if (this.namespace == null) {
       return `${this.name}`;
     } else {
       return `${this.namespace}__${this.name}`;

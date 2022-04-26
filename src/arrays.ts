@@ -4,7 +4,7 @@ export const foldRight =
   <A, B>(xs: Array<A>, zero: B) =>
   (f: (b: B, a: A) => B): B => {
     const len = xs.length;
-    if (len === 0) return zero;
+    if (len == 0) return zero;
     else {
       const last = xs[len - 1];
       const inits = xs.slice(0, len - 1);
@@ -16,7 +16,7 @@ export const foldLeft =
   <A, B>(xs: Array<A>, zero: B) =>
   (f: (b: B, a: A) => B): B => {
     const len = xs.length;
-    if (len === 0) return zero;
+    if (len == 0) return zero;
     else {
       const head = xs[0];
       const tails = xs.slice(1);

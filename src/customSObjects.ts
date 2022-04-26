@@ -48,7 +48,7 @@ export class CustomSObjectReader {
 
   public async run(): Promise<Error | void> {
     try {
-      const results = [this.writeByNamespace(this.orgNamespace)];
+      const results: Promise<void>[] = [];
       this.namespaces.forEach(namespace => {
         results.push(this.writeByNamespace(namespace));
       });
@@ -58,18 +58,12 @@ export class CustomSObjectReader {
     }
   }
 
-  private async writeByNamespace(namespace: string | null): Promise<void> {
+  private async writeByNamespace(namespace: string): Promise<void> {
     const customObjectNames = await this.queryCustomObjects(namespace);
 
     const tmpDir = await this.retrieveCustomObjects(customObjectNames);
-    const targetDirectory = namespace === null ? 'unmanaged' : namespace;
     const alienNamespaces = new Set(this.namespaces);
-    if (namespace !== null) {
-      alienNamespaces.delete(namespace);
-    }
-    if (this.orgNamespace != null && namespace !== this.orgNamespace) {
-      alienNamespaces.add(this.orgNamespace);
-    }
+    alienNamespaces.delete(namespace);
 
     try {
       const files = await this.getFiles(tmpDir);
@@ -79,9 +73,9 @@ export class CustomSObjectReader {
         .forEach(name => {
           const contents = fs.readFileSync(name, 'utf8');
 
-          const split = this.splitFields(name, contents, alienNamespaces);
+          const split = this.splitFields(contents, alienNamespaces);
           this.stubFS.newFile(
-            path.join(targetDirectory, 'objects', path.basename(name)),
+            path.join(namespace, 'objects', path.basename(name)),
             split[0]
           );
           split[1].forEach((value, key) => {
@@ -106,12 +100,11 @@ ${value.replace(/^<fields>\s/, '').replace(/\s<\/fields>$/, '')}
           });
         });
     } finally {
-      rimraf.sync(tmpDir);
+      rimraf.sync(tmpDir, { disableGlob: true });
     }
   }
 
   private splitFields(
-    sObjectName: string,
     contents: string,
     alienNamespaces: Set<string>
   ): [string, Map<string, string>] {
@@ -160,13 +153,11 @@ ${value.replace(/^<fields>\s/, '').replace(/\s<\/fields>$/, '')}
     return files.reduce((a, b) => a.concat(b), []);
   }
 
-  private async queryCustomObjects(
-    namespace: string | null
-  ): Promise<EntityName[]> {
+  private async queryCustomObjects(namespace: string): Promise<EntityName[]> {
     const customObjects = await this.connection.tooling
       .sobject('EntityDefinition')
       .find<CustomObjectDetail>(
-        namespace === null
+        namespace == 'unmanaged'
           ? "Publisher.Name = '<local>'"
           : `NamespacePrefix = '${namespace}'`,
         'QualifiedApiName'
@@ -177,7 +168,7 @@ ${value.replace(/^<fields>\s/, '').replace(/\s<\/fields>$/, '')}
       .map(customObject =>
         EntityName.applySObject(customObject.QualifiedApiName)
       )
-      .filter(sobjectName => sobjectName !== null) as EntityName[];
+      .filter(sobjectName => sobjectName != null) as EntityName[];
   }
 
   private async retrieveCustomObjects(names: EntityName[]): Promise<string> {
