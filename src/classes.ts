@@ -100,7 +100,7 @@ export class ClassReader {
             .filter(cls => cls.IsValid == false)
             .map(cls => cls.Name);
           if (invalid.length > 0) {
-            this.logger.error(
+            this.logger.debug(
               `Invalid classes, these will be ignored: ${invalid.join(', ')}`
             );
           }
@@ -130,7 +130,7 @@ export class ClassReader {
       const exceptionMessage = status.exceptionMessage || 'Unknown Exception';
       const exceptionStackTrace =
         status.exceptionStackTrace || 'No stack trace';
-      this.logger.error(
+      this.logger.debug(
         `Class validation failed: ${exceptionMessage}\n${exceptionStackTrace}`
       );
     }

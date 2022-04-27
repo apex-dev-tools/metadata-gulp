@@ -14,40 +14,35 @@
 
 import { Connection } from 'jsforce';
 import * as path from 'path';
-import { wrapError } from './error';
+import { Logger, LoggerStage } from './logger';
 import { StubFS } from './stubfs';
 
 export class LabelReader {
+  private logger: Logger;
   private connection: Connection;
-  private orgNamespace: string | null;
   private namespaces: string[];
   private stubFS: StubFS;
 
   public constructor(
+    logger: Logger,
     connection: Connection,
-    orgNamespace: string | null,
     namespaces: string[],
     stubFS: StubFS
   ) {
+    this.logger = logger;
     this.connection = connection;
-    this.orgNamespace = orgNamespace;
     this.namespaces = namespaces;
     this.stubFS = stubFS;
   }
 
-  public async run(): Promise<Error | void> {
-    return this.connection.tooling
+  public async run(): Promise<void> {
+    const labels = await this.connection.tooling
       .sobject('ExternalString')
       .find<LabelInfo>(this.labelsQuery(), 'Name, NamespacePrefix')
-      .execute({ autoFetch: true, maxFetch: 100000 })
-      .then(
-        records => {
-          this.writeLabels(records);
-        },
-        err => {
-          return wrapError(err);
-        }
-      );
+      .execute({ autoFetch: true, maxFetch: 100000 });
+
+    this.writeLabels(labels);
+    this.logger.complete(LoggerStage.LABELS);
   }
 
   private labelsQuery(): string {

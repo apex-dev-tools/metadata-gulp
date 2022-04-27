@@ -15,7 +15,8 @@
 export enum LoggerStage {
   LABELS,
   CLASSES,
-  SOBJECTS,
+  STANDARD_SOBJECTS,
+  CUSTOM_SOBJECTS,
   PAGES,
   COMPONENTS,
   FLOWS,
@@ -23,6 +24,5 @@ export enum LoggerStage {
 
 export interface Logger {
   debug(message: string): void;
-  error(message: string): void;
   complete(stage: LoggerStage): void;
 }

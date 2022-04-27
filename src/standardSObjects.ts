@@ -24,22 +24,26 @@ import { StubFS } from './stubfs';
 import { wrapError } from './error';
 import { EntityName, SObjectJSON } from './entity';
 import rimraf = require('rimraf');
+import { Logger, LoggerStage } from './logger';
 
 const readdir = promisify(fs.readdir);
 const stat = promisify(fs.stat);
 
 export class StandardSObjectReader {
+  private logger: Logger;
   private connection: Connection;
   private orgNamespace: string | null;
   private namespaces: Set<string>;
   private stubFS: StubFS;
 
   public constructor(
+    logger: Logger,
     connection: Connection,
     orgNamespace: string | null,
     namespaces: string[],
     stubFS: StubFS
   ) {
+    this.logger = logger;
     this.connection = connection;
     this.orgNamespace = orgNamespace;
     this.namespaces = new Set(namespaces);
@@ -55,6 +59,8 @@ export class StandardSObjectReader {
       await Promise.all(results);
     } catch (err) {
       return wrapError(err);
+    } finally {
+      this.logger.complete(LoggerStage.STANDARD_SOBJECTS);
     }
   }
 

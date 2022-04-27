@@ -16,21 +16,23 @@ import * as path from 'path';
 import { Connection } from 'jsforce';
 import { StubFS } from './stubfs';
 import { wrapError } from './error';
+import { Logger, LoggerStage } from './logger';
 
 export class FlowReader {
+  private logger: Logger;
   private connection: Connection;
-  private orgNamespace: string | null;
   private namespaces: string[];
   private stubFS: StubFS;
 
   public constructor(
+    logger: Logger,
     connection: Connection,
     orgNamespace: string | null,
     namespaces: string[],
     stubFS: StubFS
   ) {
+    this.logger = logger;
     this.connection = connection;
-    this.orgNamespace = orgNamespace;
     this.namespaces = namespaces;
     this.stubFS = stubFS;
   }
@@ -44,6 +46,8 @@ export class FlowReader {
       this.write(pages);
     } catch (err) {
       return wrapError(err);
+    } finally {
+      this.logger.complete(LoggerStage.FLOWS);
     }
   }
 

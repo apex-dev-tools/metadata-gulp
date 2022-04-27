@@ -160,8 +160,8 @@ export class Gulp {
     const stubFS = new StubFS(workspacePath);
 
     const labelsReader = new LabelReader(
+      logger,
       localConnection,
-      orgNamespace,
       otherNamespaces,
       stubFS
     ).run();
@@ -173,30 +173,33 @@ export class Gulp {
       stubFS
     ).run();
     const standardSObjectReader = new StandardSObjectReader(
+      logger,
       localConnection,
       orgNamespace,
       otherNamespaces,
       stubFS
     ).run();
     const customSOobjectReader = new CustomSObjectReader(
+      logger,
       localConnection,
       orgNamespace,
       otherNamespaces,
       stubFS
     ).run();
     const pageReader = new PageReader(
+      logger,
       localConnection,
-      orgNamespace,
       otherNamespaces,
       stubFS
     ).run();
     const componentReader = new ComponentReader(
+      logger,
       localConnection,
-      orgNamespace,
       otherNamespaces,
       stubFS
     ).run();
     const flowReader = new FlowReader(
+      logger,
       localConnection,
       orgNamespace,
       otherNamespaces,
