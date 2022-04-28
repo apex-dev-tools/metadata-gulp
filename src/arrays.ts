@@ -1,28 +1,16 @@
-// Source: https://gist.github.com/xclusive1111/f47b7340e0ef10dbc8e75e90e7cedc96
-
-export const foldRight =
-  <A, B>(xs: Array<A>, zero: B) =>
-  (f: (b: B, a: A) => B): B => {
-    const len = xs.length;
-    if (len == 0) return zero;
-    else {
-      const last = xs[len - 1];
-      const inits = xs.slice(0, len - 1);
-      return foldRight(inits, f(zero, last))(f);
-    }
-  };
-
-export const foldLeft =
-  <A, B>(xs: Array<A>, zero: B) =>
-  (f: (b: B, a: A) => B): B => {
-    const len = xs.length;
-    if (len == 0) return zero;
-    else {
-      const head = xs[0];
-      const tails = xs.slice(1);
-      return foldLeft(tails, f(zero, head))(f);
-    }
-  };
+/*
+ Copyright (c) 2022 Kevin Jones, All rights reserved.
+ Redistribution and use in source and binary forms, with or without
+ modification, are permitted provided that the following conditions
+ are met:
+ 1. Redistributions of source code must retain the above copyright
+    notice, this list of conditions and the following disclaimer.
+ 2. Redistributions in binary form must reproduce the above copyright
+    notice, this list of conditions and the following disclaimer in the
+    documentation and/or other materials provided with the distribution.
+ 3. The name of the author may not be used to endorse or promote products
+    derived from this software without specific prior written permission.
+ */
 
 export function chunk<A>(xs: Array<A>, chunkSize: number): A[][] {
   const accum = [];

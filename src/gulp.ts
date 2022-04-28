@@ -168,7 +168,6 @@ export class Gulp {
     const classesReader = new ClassReader(
       logger,
       localConnection,
-      orgNamespace,
       otherNamespaces,
       stubFS
     ).run();
@@ -206,19 +205,13 @@ export class Gulp {
       stubFS
     ).run();
 
-    const results = {
-      labels: await labelsReader,
-      classes: await classesReader,
-      standardSObjects: await standardSObjectReader,
-      customSObjects: await customSOobjectReader,
-      pages: await pageReader,
-      componentReader: await componentReader,
-      flowReader: await flowReader,
-    };
-    let err: keyof typeof results;
-    for (err in results) {
-      if (results[err]) throw results[err];
-    }
+    await labelsReader;
+    await classesReader;
+    await standardSObjectReader;
+    await customSOobjectReader;
+    await pageReader;
+    await componentReader;
+    await flowReader;
 
     await stubFS.sync();
   }
