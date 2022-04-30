@@ -13,13 +13,13 @@
  */
 
 export enum LoggerStage {
-  LABELS,
-  CLASSES,
-  STANDARD_SOBJECTS,
-  CUSTOM_SOBJECTS,
-  PAGES,
-  COMPONENTS,
-  FLOWS,
+  LABELS = 'Labels',
+  CLASSES = 'Classes',
+  STANDARD_SOBJECTS = 'Standard SObjects',
+  CUSTOM_SOBJECTS = 'Custom SObjects',
+  PAGES = 'Pages',
+  COMPONENTS = 'Components',
+  FLOWS = 'Flows',
 }
 
 export interface Logger {
