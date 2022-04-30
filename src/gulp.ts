@@ -81,6 +81,22 @@ export class Gulp {
     return undefined;
   }
 
+  private async getOrgNamespace(
+    workspacePath: string,
+    connection: JSConnection | null
+  ): Promise<string | null | undefined> {
+    const localConnection =
+      connection || ((await this.getConnection(workspacePath)) as JSConnection);
+
+    const organisations = await localConnection
+      .sobject('Organization')
+      .find<Organization>('', 'NamespacePrefix')
+      .execute();
+
+    if (organisations.length == 1) return organisations[0].NamespacePrefix;
+    else return undefined;
+  }
+
   public async getOrgPackageNamespaces(
     workspacePath: string,
     connection: JSConnection | null
@@ -90,7 +106,10 @@ export class Gulp {
     if (localConnection == null)
       throw new Error('There is no default org available to query');
 
-    const orgNamespace = await this.getOrgNamespace(localConnection);
+    const orgNamespace = await this.getOrgNamespace(
+      workspacePath,
+      localConnection
+    );
     if (orgNamespace == undefined)
       throw new Error('Unable to query org default namespace');
 
@@ -145,7 +164,10 @@ export class Gulp {
         'There is no default org available to load metadata from'
       );
 
-    const orgNamespace = await this.getOrgNamespace(localConnection);
+    const orgNamespace = await this.getOrgNamespace(
+      workspacePath,
+      localConnection
+    );
     if (orgNamespace == undefined)
       throw new Error('Could not obtain the org default namespace');
 
@@ -230,18 +252,6 @@ export class Gulp {
     } else {
       return null;
     }
-  }
-
-  private async getOrgNamespace(
-    connection: JSConnection
-  ): Promise<string | null | undefined> {
-    const organisations = await connection
-      .sobject('Organization')
-      .find<Organization>('', 'NamespacePrefix')
-      .execute();
-
-    if (organisations.length == 1) return organisations[0].NamespacePrefix;
-    else return undefined;
   }
 
   private packageVersion(pkg: SubscriberPackageVersion): string {
