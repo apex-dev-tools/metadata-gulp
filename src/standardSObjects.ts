@@ -66,7 +66,7 @@ export class StandardSObjectReader {
 
   private async writeByNamespace(namespace: string): Promise<void> {
     const standardObjectNames = await this.queryStandardObjects(namespace);
-    const tmpDir = await this.retrieveCustomObjects(standardObjectNames);
+    const tmpDir = await this.retrieveObjects(standardObjectNames);
 
     try {
       const files = await this.getFiles(tmpDir);
@@ -174,7 +174,7 @@ export class StandardSObjectReader {
       .filter(value => !this.isId(value));
   }
 
-  private async retrieveCustomObjects(names: string[]): Promise<string> {
+  private async retrieveObjects(names: string[]): Promise<string> {
     const retrievePackage: Package = {
       version: this.connection.version,
       types: [

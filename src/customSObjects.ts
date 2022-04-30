@@ -67,7 +67,7 @@ export class CustomSObjectReader {
   private async writeByNamespace(namespace: string): Promise<void> {
     const customObjectNames = await this.queryCustomObjects(namespace);
 
-    const tmpDir = await this.retrieveCustomObjects(customObjectNames);
+    const tmpDir = await this.retrieveObjects(customObjectNames);
     const alienNamespaces = new Set(this.namespaces);
     alienNamespaces.delete(namespace);
 
@@ -79,7 +79,7 @@ export class CustomSObjectReader {
         .forEach(name => {
           const contents = fs.readFileSync(name, 'utf8');
 
-          const split = this.splitFields(contents, alienNamespaces);
+          const split = this.splitFields(contents, namespace, alienNamespaces);
           this.stubFS.newFile(
             path.join(namespace, 'objects', path.basename(name)),
             split[0]
@@ -112,6 +112,7 @@ ${value.replace(/^<fields>\s/, '').replace(/\s<\/fields>$/, '')}
 
   private splitFields(
     contents: string,
+    namespace: string,
     alienNamespaces: Set<string>
   ): [string, Map<string, string>] {
     const parser = new XMLParser();
@@ -123,7 +124,7 @@ ${value.replace(/^<fields>\s/, '').replace(/\s<\/fields>$/, '')}
         const name = EntityName.applyField(field.fullName);
         if (name != null) {
           name.defaultNamespace(this.orgNamespace);
-          return alienNamespaces.has(name.namespace as string);
+          return name.namespace != namespace;
         } else {
           return false;
         }
@@ -133,13 +134,19 @@ ${value.replace(/^<fields>\s/, '').replace(/\s<\/fields>$/, '')}
       let updatedContent = contents;
       if (alienFields.length > 0) {
         for (const alienField of alienFields) {
-          const re = new RegExp(
-            `<fields>\\s*<fullName>${alienField.fullName}<[\\s\\S]*?<\\/fields>`
-          );
-          updatedContent = updatedContent.replace(re, matched => {
-            alienContent.set(alienField.fullName, matched);
-            return '';
-          });
+          const name = EntityName.applyField(alienField.fullName);
+          if (name != null) {
+            name.defaultNamespace(this.orgNamespace);
+
+            const re = new RegExp(
+              `<fields>\\s*<fullName>${alienField.fullName}<[\\s\\S]*?<\\/fields>`
+            );
+            updatedContent = updatedContent.replace(re, matched => {
+              if (alienNamespaces.has(name.namespace as string))
+                alienContent.set(alienField.fullName, matched);
+              return '';
+            });
+          }
         }
       }
       return [updatedContent, alienContent];
@@ -177,7 +184,7 @@ ${value.replace(/^<fields>\s/, '').replace(/\s<\/fields>$/, '')}
       .filter(sobjectName => sobjectName != null) as EntityName[];
   }
 
-  private async retrieveCustomObjects(names: EntityName[]): Promise<string> {
+  private async retrieveObjects(names: EntityName[]): Promise<string> {
     const retrievePackage: Package = {
       version: this.connection.version,
       types: [
