@@ -115,6 +115,7 @@ ${value.replace(/^<fields>\s/, '').replace(/\s<\/fields>$/, '')}
     namespace: string,
     alienNamespaces: Set<string>
   ): [string, Map<string, string>] {
+    const ns = namespace == 'unmanaged' ? null : namespace;
     const parser = new XMLParser();
     const objectContents = parser.parse(contents) as SObjectJSON;
     const fields = objectContents?.CustomObject?.fields;
@@ -124,7 +125,7 @@ ${value.replace(/^<fields>\s/, '').replace(/\s<\/fields>$/, '')}
         const name = EntityName.applyField(field.fullName);
         if (name != null) {
           name.defaultNamespace(this.orgNamespace);
-          return name.namespace != namespace;
+          return name.namespace != ns;
         } else {
           return false;
         }
