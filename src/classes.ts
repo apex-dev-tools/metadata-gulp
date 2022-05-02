@@ -63,11 +63,15 @@ export class ClassReader {
     chunk: string[]
   ): Promise<void> {
     try {
+      const isUnmanged = namespace == 'unmanaged';
+      const namespaceClause = isUnmanged
+        ? 'NamespacePrefix = null'
+        : `NamespacePrefix = '${namespace}`;
       const names = chunk.map(name => `Name='${name}'`).join(' OR ');
       const records = await this.connection.tooling
         .sobject('ApexClass')
         .find<ClassInfo>(
-          `Status = 'Active' AND NamespacePrefix = '${namespace}' AND (${names})`,
+          `Status = 'Active' AND ${namespaceClause} AND (${names})`,
           'Name, NamespacePrefix, IsValid, Body'
         )
         .execute({ autoFetch: true, maxFetch: 100000 });
@@ -88,12 +92,13 @@ export class ClassReader {
 
   private async getValidClassNames(namespace: string): Promise<string[]> {
     try {
+      const isUnmanged = namespace == 'unmanaged';
+      const namespaceClause = isUnmanged
+        ? 'NamespacePrefix = null'
+        : `NamespacePrefix = '${namespace}`;
       const records = await this.connection.tooling
         .sobject('ApexClass')
-        .find<ClassInfo>(
-          `Status = 'Active' AND NamespacePrefix = '${namespace}'`,
-          'Name'
-        )
+        .find<ClassInfo>(`Status = 'Active' AND ${namespaceClause}`, 'Name')
         .execute({ autoFetch: true, maxFetch: 100000 });
 
       const statuses = await this.refreshClasses(

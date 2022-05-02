@@ -182,7 +182,7 @@ export class Gulp {
       workspacePath,
       localConnection
     );
-    if (orgNamespace == undefined)
+    if (orgNamespace === undefined)
       throw new Error('Could not obtain the org default namespace');
 
     const uniqueNamespaces = new Set(namespaces);
