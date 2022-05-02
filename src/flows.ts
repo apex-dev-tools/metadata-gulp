@@ -15,7 +15,7 @@
 import * as path from 'path';
 import { Connection } from 'jsforce';
 import { StubFS } from './stubfs';
-import { wrapError } from './error';
+import { ctxError } from './error';
 import { Logger, LoggerStage } from './logger';
 
 export class FlowReader {
@@ -37,17 +37,16 @@ export class FlowReader {
     this.stubFS = stubFS;
   }
 
-  public async run(): Promise<Error | void> {
+  public async run(): Promise<void> {
     try {
       const pages = await this.connection.tooling
         .sobject('FlowDefinition')
         .find<FlowInfo>(this.query(), 'DeveloperName, NamespacePrefix')
         .execute({ autoFetch: true, maxFetch: 100000 });
       this.write(pages);
-    } catch (err) {
-      return wrapError(err);
-    } finally {
       this.logger.complete(LoggerStage.FLOWS);
+    } catch (err) {
+      throw ctxError(err, 'Flows query');
     }
   }
 

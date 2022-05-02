@@ -21,7 +21,7 @@ import decompress = require('decompress');
 import { Connection, Package, RetrieveResult } from 'jsforce';
 import { XMLParser } from 'fast-xml-parser';
 import { StubFS } from './stubfs';
-import { wrapError } from './error';
+import { ctxError } from './error';
 import { EntityName, SObjectJSON } from './entity';
 import rimraf = require('rimraf');
 import { Logger, LoggerStage } from './logger';
@@ -56,11 +56,11 @@ export class StandardSObjectReader {
       this.namespaces.forEach(namespace => {
         results.push(this.writeByNamespace(namespace));
       });
-      await Promise.all(results);
+      await Promise.all(results).finally(() => {
+        this.logger.complete(LoggerStage.STANDARD_SOBJECTS);
+      });
     } catch (err) {
-      return wrapError(err);
-    } finally {
-      this.logger.complete(LoggerStage.STANDARD_SOBJECTS);
+      throw ctxError(err, 'Standard Objects');
     }
   }
 
@@ -76,7 +76,7 @@ export class StandardSObjectReader {
         .forEach(name => {
           const contents = fs.readFileSync(name, 'utf8');
 
-          const fields = this.getFields(name, contents, namespace);
+          const fields = this.getFields(contents, namespace);
           fields.forEach((value, key) => {
             const fieldName = EntityName.applyField(key)?.defaultNamespace(
               this.orgNamespace
@@ -105,11 +105,7 @@ export class StandardSObjectReader {
     }
   }
 
-  private getFields(
-    sObjectName: string,
-    contents: string,
-    namespace: string
-  ): Map<string, string> {
+  private getFields(contents: string, namespace: string): Map<string, string> {
     const parser = new XMLParser();
     const objectContents = parser.parse(contents) as SObjectJSON;
     const fields = objectContents?.CustomObject?.fields;
@@ -150,56 +146,72 @@ export class StandardSObjectReader {
   }
 
   private async getFiles(dir: string): Promise<string[]> {
-    const subdirs = await readdir(dir);
-    const files = await Promise.all(
-      subdirs.map(async subdir => {
-        const res = resolve(dir, subdir);
-        return (await stat(res)).isDirectory() ? this.getFiles(res) : [res];
-      })
-    );
-    return files.reduce((a, b) => a.concat(b), []);
+    try {
+      const subdirs = await readdir(dir);
+      const files = await Promise.all(
+        subdirs.map(async subdir => {
+          const res = resolve(dir, subdir);
+          return (await stat(res)).isDirectory() ? this.getFiles(res) : [res];
+        })
+      );
+
+      return files.reduce((a, b) => a.concat(b), []);
+    } catch (err) {
+      throw ctxError(err, 'file listing');
+    }
   }
 
   private async queryStandardObjects(namespace: string): Promise<string[]> {
-    const clause =
-      namespace == 'unmanaged'
-        ? "ManageableState = 'unmanaged'"
-        : `NamespacePrefix = '${namespace}'`;
-    const standardObjects = await this.connection.tooling.query<AggCustomField>(
-      `Select Count(Id), TableEnumOrId from CustomField where ${clause} Group By TableEnumOrId`
-    );
+    try {
+      const clause =
+        namespace == 'unmanaged'
+          ? "ManageableState = 'unmanaged'"
+          : `NamespacePrefix = '${namespace}'`;
+      const standardObjects =
+        await this.connection.tooling.query<AggCustomField>(
+          `Select Count(Id), TableEnumOrId from CustomField where ${clause} Group By TableEnumOrId`
+        );
 
-    return standardObjects.records
-      .map(standardObject => standardObject.TableEnumOrId)
-      .filter(value => !this.isId(value));
+      return standardObjects.records
+        .map(standardObject => standardObject.TableEnumOrId)
+        .filter(value => !this.isId(value));
+    } catch (err) {
+      throw ctxError(err, 'query');
+    }
   }
 
   private async retrieveObjects(names: string[]): Promise<string> {
-    const retrievePackage: Package = {
-      version: this.connection.version,
-      types: [
-        {
-          members: names,
-          name: 'CustomObject',
-        },
-      ],
-    };
+    try {
+      const retrievePackage: Package = {
+        version: this.connection.version,
+        types: [
+          {
+            members: names,
+            name: 'CustomObject',
+          },
+        ],
+      };
 
-    const retrieveOptions = {
-      apiVersion: this.connection.version,
-      unpackaged: retrievePackage,
-    };
-    const result = await this.connection.metadata
-      .retrieve(retrieveOptions)
-      .complete();
-    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gulp'));
+      const retrieveOptions = {
+        apiVersion: this.connection.version,
+        unpackaged: retrievePackage,
+      };
+      const result = await this.connection.metadata
+        .retrieve(retrieveOptions)
+        .complete();
 
-    const zipBuffer = Buffer.from(
-      (result as unknown as RetrieveResult).zipFile,
-      'base64'
-    );
-    await decompress(zipBuffer, tmpDir);
-    return tmpDir;
+      const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gulp'));
+
+      const zipBuffer = Buffer.from(
+        (result as unknown as RetrieveResult).zipFile,
+        'base64'
+      );
+      await decompress(zipBuffer, tmpDir);
+
+      return tmpDir;
+    } catch (err) {
+      throw ctxError(err, 'retrieve');
+    }
   }
 
   private isId(value: string): boolean {

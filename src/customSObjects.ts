@@ -21,7 +21,7 @@ import decompress = require('decompress');
 import { Connection, Package, RetrieveResult } from 'jsforce';
 import { XMLParser } from 'fast-xml-parser';
 import { StubFS } from './stubfs';
-import { wrapError } from './error';
+import { ctxError } from './error';
 import * as rimraf from 'rimraf';
 import { CustomObjectDetail, EntityName, SObjectJSON } from './entity';
 import { Logger, LoggerStage } from './logger';
@@ -50,17 +50,17 @@ export class CustomSObjectReader {
     this.stubFS = stubFS;
   }
 
-  public async run(): Promise<Error | void> {
+  public async run(): Promise<void[]> {
     try {
       const results: Promise<void>[] = [];
       this.namespaces.forEach(namespace => {
         results.push(this.writeByNamespace(namespace));
       });
-      await Promise.all(results);
+      return await Promise.all(results).finally(() => {
+        this.logger.complete(LoggerStage.CUSTOM_SOBJECTS);
+      });
     } catch (err) {
-      return wrapError(err);
-    } finally {
-      this.logger.complete(LoggerStage.CUSTOM_SOBJECTS);
+      throw ctxError(err, 'Custom SObject');
     }
   }
 
@@ -156,59 +156,73 @@ ${value.replace(/^<fields>\s/, '').replace(/\s<\/fields>$/, '')}
   }
 
   private async getFiles(dir: string): Promise<string[]> {
-    const subdirs = await readdir(dir);
-    const files = await Promise.all(
-      subdirs.map(async subdir => {
-        const res = resolve(dir, subdir);
-        return (await stat(res)).isDirectory() ? this.getFiles(res) : [res];
-      })
-    );
-    return files.reduce((a, b) => a.concat(b), []);
+    try {
+      const subdirs = await readdir(dir);
+      const files = await Promise.all(
+        subdirs.map(async subdir => {
+          const res = resolve(dir, subdir);
+          return (await stat(res)).isDirectory() ? this.getFiles(res) : [res];
+        })
+      );
+
+      return files.reduce((a, b) => a.concat(b), []);
+    } catch (err) {
+      throw ctxError(err, 'file listing');
+    }
   }
 
   private async queryCustomObjects(namespace: string): Promise<EntityName[]> {
-    const customObjects = await this.connection.tooling
-      .sobject('EntityDefinition')
-      .find<CustomObjectDetail>(
-        namespace == 'unmanaged'
-          ? "Publisher.Name = '<local>'"
-          : `NamespacePrefix = '${namespace}'`,
-        'QualifiedApiName'
-      )
-      .execute({ autoFetch: true, maxFetch: 100000 });
+    try {
+      const customObjects = await this.connection.tooling
+        .sobject('EntityDefinition')
+        .find<CustomObjectDetail>(
+          namespace == 'unmanaged'
+            ? "Publisher.Name = '<local>'"
+            : `NamespacePrefix = '${namespace}'`,
+          'QualifiedApiName'
+        )
+        .execute({ autoFetch: true, maxFetch: 100000 });
 
-    return customObjects
-      .map(customObject =>
-        EntityName.applySObject(customObject.QualifiedApiName)
-      )
-      .filter(sobjectName => sobjectName != null) as EntityName[];
+      return customObjects
+        .map(customObject =>
+          EntityName.applySObject(customObject.QualifiedApiName)
+        )
+        .filter(sobjectName => sobjectName != null) as EntityName[];
+    } catch (err) {
+      throw ctxError(err, 'query');
+    }
   }
 
   private async retrieveObjects(names: EntityName[]): Promise<string> {
-    const retrievePackage: Package = {
-      version: this.connection.version,
-      types: [
-        {
-          members: names.map(name => name.fullName()),
-          name: 'CustomObject',
-        },
-      ],
-    };
+    try {
+      const retrievePackage: Package = {
+        version: this.connection.version,
+        types: [
+          {
+            members: names.map(name => name.fullName()),
+            name: 'CustomObject',
+          },
+        ],
+      };
 
-    const retrieveOptions = {
-      apiVersion: this.connection.version,
-      unpackaged: retrievePackage,
-    };
-    const result = await this.connection.metadata
-      .retrieve(retrieveOptions)
-      .complete();
-    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gulp'));
+      const retrieveOptions = {
+        apiVersion: this.connection.version,
+        unpackaged: retrievePackage,
+      };
+      const result = await this.connection.metadata
+        .retrieve(retrieveOptions)
+        .complete();
 
-    const zipBuffer = Buffer.from(
-      (result as unknown as RetrieveResult).zipFile,
-      'base64'
-    );
-    await decompress(zipBuffer, tmpDir);
-    return tmpDir;
+      const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gulp'));
+
+      const zipBuffer = Buffer.from(
+        (result as unknown as RetrieveResult).zipFile,
+        'base64'
+      );
+      await decompress(zipBuffer, tmpDir);
+      return tmpDir;
+    } catch (err) {
+      throw ctxError(err, 'rerieval');
+    }
   }
 }

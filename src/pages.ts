@@ -15,7 +15,7 @@
 import * as path from 'path';
 import { Connection } from 'jsforce';
 import { StubFS } from './stubfs';
-import { wrapError } from './error';
+import { ctxError } from './error';
 import { Logger, LoggerStage } from './logger';
 
 export class PageReader {
@@ -42,11 +42,11 @@ export class PageReader {
         .sobject('ApexPage')
         .find<PageInfo>(this.query(), 'Name, NamespacePrefix, Markup')
         .execute({ autoFetch: true, maxFetch: 100000 });
+
       this.write(pages);
-    } catch (err) {
-      return wrapError(err);
-    } finally {
       this.logger.complete(LoggerStage.PAGES);
+    } catch (err) {
+      throw ctxError(err, 'Pages query');
     }
   }
 

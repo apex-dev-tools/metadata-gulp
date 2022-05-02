@@ -15,7 +15,7 @@
 import * as path from 'path';
 import { Connection } from 'jsforce';
 import { StubFS } from './stubfs';
-import { wrapError } from './error';
+import { ctxError } from './error';
 import { Logger, LoggerStage } from './logger';
 
 export class ComponentReader {
@@ -36,17 +36,16 @@ export class ComponentReader {
     this.stubFS = stubFS;
   }
 
-  public async run(): Promise<Error | void> {
+  public async run(): Promise<void> {
     try {
       const components = await this.connection.tooling
         .sobject('ApexComponent')
         .find<ComponentInfo>(this.query(), 'Name, NamespacePrefix, Markup')
         .execute({ autoFetch: true, maxFetch: 100000 });
       this.write(components);
-    } catch (err) {
-      return wrapError(err);
-    } finally {
       this.logger.complete(LoggerStage.COMPONENTS);
+    } catch (err) {
+      throw ctxError(err, 'Components query');
     }
   }
 

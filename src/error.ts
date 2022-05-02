@@ -13,13 +13,11 @@
  */
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-export function wrapError(err: any): Error {
+export function ctxError(err: any, context: string): Error {
   if (err instanceof Error) {
-    if (err.stack) {
-      return Error(err.stack);
-    } else {
-      return Error(err.toString());
-    }
+    err.message = `${context}: ${err.message}`;
+    return err;
+  } else {
+    return Error(`${context}: ${JSON.stringify(err)}`);
   }
-  return Error(err);
 }

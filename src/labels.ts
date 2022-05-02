@@ -14,6 +14,7 @@
 
 import { Connection } from 'jsforce';
 import * as path from 'path';
+import { ctxError } from './error';
 import { Logger, LoggerStage } from './logger';
 import { StubFS } from './stubfs';
 
@@ -36,13 +37,17 @@ export class LabelReader {
   }
 
   public async run(): Promise<void> {
-    const labels = await this.connection.tooling
-      .sobject('ExternalString')
-      .find<LabelInfo>(this.labelsQuery(), 'Name, NamespacePrefix')
-      .execute({ autoFetch: true, maxFetch: 100000 });
+    try {
+      const labels = await this.connection.tooling
+        .sobject('ExternalString')
+        .find<LabelInfo>(this.labelsQuery(), 'Name, NamespacePrefix')
+        .execute({ autoFetch: true, maxFetch: 100000 });
 
-    this.writeLabels(labels);
-    this.logger.complete(LoggerStage.LABELS);
+      this.writeLabels(labels);
+      this.logger.complete(LoggerStage.LABELS);
+    } catch (err) {
+      throw ctxError(err, 'Labels query');
+    }
   }
 
   private labelsQuery(): string {

@@ -24,6 +24,7 @@ import { AuthInfo, Connection } from '@salesforce/core';
 import { ConfigUtil } from './configUtils';
 import { StandardSObjectReader } from './standardSObjects';
 import { Connection as JSConnection } from 'jsforce';
+import { ctxError } from './error';
 
 export { Logger, LoggerStage } from './logger';
 
@@ -68,6 +69,8 @@ export class NamespaceInfo {
 }
 
 export class Gulp {
+  private POLL_TIMEOUT = 15 * 1000;
+
   public async getDefaultUsername(
     workspacePath: string
   ): Promise<string | undefined> {
@@ -88,13 +91,16 @@ export class Gulp {
     const localConnection =
       connection || ((await this.getConnection(workspacePath)) as JSConnection);
 
-    const organisations = await localConnection
-      .sobject('Organization')
-      .find<Organization>('', 'NamespacePrefix')
-      .execute();
-
-    if (organisations.length == 1) return organisations[0].NamespacePrefix;
-    else return undefined;
+    try {
+      const organisations = await localConnection
+        .sobject('Organization')
+        .find<Organization>('', 'NamespacePrefix')
+        .execute();
+      if (organisations.length == 1) return organisations[0].NamespacePrefix;
+      else return undefined;
+    } catch (err) {
+      throw ctxError(err, 'Organization query');
+    }
   }
 
   public async getOrgPackageNamespaces(
@@ -159,10 +165,18 @@ export class Gulp {
   ): Promise<void> {
     const localConnection =
       connection || ((await this.getConnection(workspacePath)) as JSConnection);
-    if (localConnection == null)
+    if (localConnection == null) {
       throw new Error(
         'There is no default org available to load metadata from'
       );
+    }
+
+    if (
+      !localConnection.metadata.pollTimeout ||
+      localConnection.metadata.pollTimeout < this.POLL_TIMEOUT
+    ) {
+      localConnection.metadata.pollTimeout = this.POLL_TIMEOUT;
+    }
 
     const orgNamespace = await this.getOrgNamespace(
       workspacePath,
@@ -200,7 +214,7 @@ export class Gulp {
       otherNamespaces,
       stubFS
     ).run();
-    const customSOobjectReader = new CustomSObjectReader(
+    const customSObjectReader = new CustomSObjectReader(
       logger,
       localConnection,
       orgNamespace,
@@ -227,15 +241,25 @@ export class Gulp {
       stubFS
     ).run();
 
-    await labelsReader;
-    await classesReader;
-    await standardSObjectReader;
-    await customSOobjectReader;
-    await pageReader;
-    await componentReader;
-    await flowReader;
+    const loaded = Promise.all([
+      labelsReader,
+      classesReader,
+      standardSObjectReader,
+      customSObjectReader,
+      pageReader,
+      componentReader,
+      flowReader,
+    ]);
 
-    await stubFS.sync();
+    return loaded.then(
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      _result => {
+        return stubFS.sync();
+      },
+      err => {
+        throw err;
+      }
+    );
   }
 
   private async getConnection(
@@ -246,9 +270,10 @@ export class Gulp {
       'defaultusername'
     );
     if (typeof username == 'string') {
-      return await Connection.create({
+      const connection = await Connection.create({
         authInfo: await AuthInfo.create({ username: username }),
       });
+      return connection;
     } else {
       return null;
     }
