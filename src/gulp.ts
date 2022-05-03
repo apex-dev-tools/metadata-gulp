@@ -12,6 +12,8 @@
     derived from this software without specific prior written permission.
  */
 
+import * as fs from 'fs';
+import * as path from 'path';
 import { ComponentReader } from './components';
 import { FlowReader } from './flows';
 import { PageReader } from './pages';
@@ -84,10 +86,11 @@ export class Gulp {
     return undefined;
   }
 
-  private async getOrgNamespace(
+  public async getOrgNamespace(
     workspacePath: string,
     connection: JSConnection | null
   ): Promise<string | null | undefined> {
+    this.checkWorkspaceOrThrow(workspacePath);
     const localConnection =
       connection || ((await this.getConnection(workspacePath)) as JSConnection);
 
@@ -107,6 +110,7 @@ export class Gulp {
     workspacePath: string,
     connection: JSConnection | null
   ): Promise<NamespaceInfo[]> {
+    this.checkWorkspaceOrThrow(workspacePath);
     const localConnection =
       connection || ((await this.getConnection(workspacePath)) as JSConnection);
     if (localConnection == null)
@@ -163,6 +167,7 @@ export class Gulp {
     connection: JSConnection | null,
     namespaces: string[] = []
   ): Promise<void> {
+    this.checkWorkspaceOrThrow(workspacePath);
     const localConnection =
       connection || ((await this.getConnection(workspacePath)) as JSConnection);
     if (localConnection == null) {
@@ -277,6 +282,12 @@ export class Gulp {
     } else {
       return null;
     }
+  }
+
+  private checkWorkspaceOrThrow(workspacePath: string): void {
+    const projectPath = path.join(workspacePath, 'sfdx-project.json');
+    if (!fs.statSync(projectPath).isFile())
+      throw new Error(`No sfdx-project.json file found at ${projectPath}`);
   }
 
   private packageVersion(pkg: SubscriberPackageVersion): string {

@@ -38,12 +38,15 @@ export class PageReader {
 
   public async run(): Promise<Error | void> {
     try {
-      const pages = await this.connection.tooling
-        .sobject('ApexPage')
-        .find<PageInfo>(this.query(), 'Name, NamespacePrefix, Markup')
-        .execute({ autoFetch: true, maxFetch: 100000 });
+      const conditions = this.query();
+      if (conditions.length > 0) {
+        const pages = await this.connection.tooling
+          .sobject('ApexPage')
+          .find<PageInfo>(conditions, 'Name, NamespacePrefix, Markup')
+          .execute({ autoFetch: true, maxFetch: 100000 });
 
-      this.write(pages);
+        this.write(pages);
+      }
       this.logger.complete(LoggerStage.PAGES);
     } catch (err) {
       throw ctxError(err, 'Pages query');

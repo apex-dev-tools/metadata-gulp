@@ -38,11 +38,14 @@ export class ComponentReader {
 
   public async run(): Promise<void> {
     try {
-      const components = await this.connection.tooling
-        .sobject('ApexComponent')
-        .find<ComponentInfo>(this.query(), 'Name, NamespacePrefix, Markup')
-        .execute({ autoFetch: true, maxFetch: 100000 });
-      this.write(components);
+      const conditions = this.query();
+      if (conditions.length > 0) {
+        const components = await this.connection.tooling
+          .sobject('ApexComponent')
+          .find<ComponentInfo>(conditions, 'Name, NamespacePrefix, Markup')
+          .execute({ autoFetch: true, maxFetch: 100000 });
+        this.write(components);
+      }
       this.logger.complete(LoggerStage.COMPONENTS);
     } catch (err) {
       throw ctxError(err, 'Components query');

@@ -39,11 +39,14 @@ export class FlowReader {
 
   public async run(): Promise<void> {
     try {
-      const pages = await this.connection.tooling
-        .sobject('FlowDefinition')
-        .find<FlowInfo>(this.query(), 'DeveloperName, NamespacePrefix')
-        .execute({ autoFetch: true, maxFetch: 100000 });
-      this.write(pages);
+      const conditions = this.query();
+      if (conditions.length > 0) {
+        const pages = await this.connection.tooling
+          .sobject('FlowDefinition')
+          .find<FlowInfo>(conditions, 'DeveloperName, NamespacePrefix')
+          .execute({ autoFetch: true, maxFetch: 100000 });
+        this.write(pages);
+      }
       this.logger.complete(LoggerStage.FLOWS);
     } catch (err) {
       throw ctxError(err, 'Flows query');

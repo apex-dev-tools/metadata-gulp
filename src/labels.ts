@@ -38,19 +38,22 @@ export class LabelReader {
 
   public async run(): Promise<void> {
     try {
-      const labels = await this.connection.tooling
-        .sobject('ExternalString')
-        .find<LabelInfo>(this.labelsQuery(), 'Name, NamespacePrefix')
-        .execute({ autoFetch: true, maxFetch: 100000 });
+      const conditions = this.query();
+      if (conditions.length > 0) {
+        const labels = await this.connection.tooling
+          .sobject('ExternalString')
+          .find<LabelInfo>(conditions, 'Name, NamespacePrefix')
+          .execute({ autoFetch: true, maxFetch: 100000 });
 
-      this.writeLabels(labels);
+        this.writeLabels(labels);
+      }
       this.logger.complete(LoggerStage.LABELS);
     } catch (err) {
       throw ctxError(err, 'Labels query');
     }
   }
 
-  private labelsQuery(): string {
+  private query(): string {
     const conditions = this.namespaces.map(namespace => {
       if (namespace == 'unmanaged') {
         return 'NamespacePrefix = null';

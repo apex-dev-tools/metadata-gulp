@@ -37,9 +37,9 @@
     "apexlink"
   ],
   "bugs": {
-    "url": "https://github.com/nawforce/typescript-npm-package-template/issues"
+    "url": "https://github.com/nawforce/apex-link-gulp/issues"
   },
-  "homepage": "https://github.com/nawforce/typescript-npm-package-template#readme",
+  "homepage": "https://github.com/nawforce/apex-link-gulp#readme",
   "dependencies": {
     "@salesforce/core": "2.36.1",
     "decompress": "4.2.1",
