@@ -66,7 +66,7 @@ export class ClassReader {
       const isUnmanged = namespace == 'unmanaged';
       const namespaceClause = isUnmanged
         ? 'NamespacePrefix = null'
-        : `NamespacePrefix = '${namespace}`;
+        : `NamespacePrefix = '${namespace}'`;
       const names = chunk.map(name => `Name='${name}'`).join(' OR ');
       const records = await this.connection.tooling
         .sobject('ApexClass')
@@ -95,7 +95,7 @@ export class ClassReader {
       const isUnmanged = namespace == 'unmanaged';
       const namespaceClause = isUnmanged
         ? 'NamespacePrefix = null'
-        : `NamespacePrefix = '${namespace}`;
+        : `NamespacePrefix = '${namespace}'`;
       const records = await this.connection.tooling
         .sobject('ApexClass')
         .find<ClassInfo>(`Status = 'Active' AND ${namespaceClause}`, 'Name')

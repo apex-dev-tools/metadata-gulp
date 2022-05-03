@@ -120,7 +120,7 @@ export class Gulp {
       workspacePath,
       localConnection
     );
-    if (orgNamespace == undefined)
+    if (orgNamespace === undefined)
       throw new Error('Unable to query org default namespace');
 
     const results = await localConnection.tooling
