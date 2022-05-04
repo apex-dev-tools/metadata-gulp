@@ -9,15 +9,15 @@ To start a download use update() from Gulp:
         connection: JSConnection | null,
         namespaces: string[] = []
     ): Promise<void>
-  
+
 The workspacePath must be the location of your sfdx-project.json file. The metadata is downloaded into a '.apexlink/gulp' directory relative to this.
 
 If you have an open [jsforce](https://github.com/jsforce/jsforce) connection you can pass that, if you pass null a new connection will be created.
 
-Metadata is download independently for each passed namespace. For orgs without a namespace you can use the pseudo namespace *unmanaged*. Existing downloaded metadata for namespaces not passed to update() is removed automatically. Passing no namespaces is equivalent to asking for all downloaded metadata to be removed.
+Metadata is download independently for each passed namespace. For orgs without a namespace you can use the pseudo namespace _unmanaged_. Existing downloaded metadata for namespaces not passed to update() is removed automatically. Passing no namespaces is equivalent to asking for all downloaded metadata to be removed.
 
-To obtain the orgs namespaces you can use: 
-    
+To obtain the orgs namespaces you can use:
+
     async getOrgNamespace(
         workspacePath: string,
         connection: JSConnection | null
@@ -26,12 +26,14 @@ To obtain the orgs namespaces you can use:
 This will return string | null on success or undefined if the Organization table can not be queried.
 
 ### Building
+
     npm run build
 
 ### History
+
+    1.1.0 - Fix handling for org aliases
     1.0.0 - Initial version
 
 ### License
 
-All the source code included uses a 3-clause BSD license, see LICENSE for details. 
-
+All the source code included uses a 3-clause BSD license, see LICENSE for details.

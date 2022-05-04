@@ -22,7 +22,7 @@ import { LabelReader } from './labels';
 import { CustomSObjectReader } from './customSObjects';
 import { StubFS } from './stubfs';
 import { Logger } from './logger';
-import { AuthInfo, Connection } from '@salesforce/core';
+import { Aliases, AuthInfo, Connection } from '@salesforce/core';
 import { ConfigUtil } from './configUtils';
 import { StandardSObjectReader } from './standardSObjects';
 import { Connection as JSConnection } from 'jsforce';
@@ -76,12 +76,12 @@ export class Gulp {
   public async getDefaultUsername(
     workspacePath: string
   ): Promise<string | undefined> {
-    const username = await ConfigUtil.getConfigValue(
+    const usernameOrAlias = await ConfigUtil.getConfigValue(
       workspacePath,
       'defaultusername'
     );
-    if (typeof username == 'string') {
-      return username;
+    if (typeof usernameOrAlias == 'string') {
+      return (await Aliases.fetch(usernameOrAlias)) || usernameOrAlias;
     }
     return undefined;
   }
@@ -270,11 +270,8 @@ export class Gulp {
   private async getConnection(
     workspacePath: string
   ): Promise<JSConnection | null> {
-    const username = await ConfigUtil.getConfigValue(
-      workspacePath,
-      'defaultusername'
-    );
-    if (typeof username == 'string') {
+    const username = await this.getDefaultUsername(workspacePath);
+    if (username !== undefined) {
       const connection = await Connection.create({
         authInfo: await AuthInfo.create({ username: username }),
       });
