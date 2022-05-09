@@ -129,6 +129,7 @@ export class Gulp {
       .execute({ autoFetch: true, maxFetch: 100000 });
 
     const infos = results
+      .filter(info => info.SubscriberPackage.NamespacePrefix != null)
       .sort((a, b) =>
         a.SubscriberPackage.NamespacePrefix.localeCompare(
           b.SubscriberPackage.NamespacePrefix
@@ -154,7 +155,7 @@ export class Gulp {
       infos.unshift(
         new NamespaceInfo(
           'unmanaged',
-          'The Unmanaged metadata that does belong to a package'
+          'Metadata that does belong to a managed package, may be part of an unlocked/unmanaged package'
         )
       );
     }
