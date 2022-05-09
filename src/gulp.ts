@@ -71,7 +71,7 @@ export class NamespaceInfo {
 }
 
 export class Gulp {
-  private POLL_TIMEOUT = 15 * 1000;
+  private POLL_TIMEOUT = 10 * 60 * 1000;
 
   public async getDefaultUsername(
     workspacePath: string
