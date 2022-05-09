@@ -1,6 +1,6 @@
 {
   "name": "apexlink-gulp",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Library for downloading Salesforce metdata suitable for use with apexlink",
   "author": {
     "name": "Kevin Jones",
