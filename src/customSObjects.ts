@@ -13,18 +13,17 @@
  */
 
 import * as path from 'path';
-import * as os from 'os';
 import * as fs from 'fs';
 import { promisify } from 'util';
 import { resolve } from 'path';
-import decompress = require('decompress');
-import { Connection, Package, RetrieveResult } from 'jsforce';
+import { Connection } from 'jsforce';
 import { XMLParser } from 'fast-xml-parser';
 import { StubFS } from './stubfs';
 import { ctxError } from './error';
 import * as rimraf from 'rimraf';
 import { CustomObjectDetail, EntityName, SObjectJSON } from './entity';
 import { Logger, LoggerStage } from './logger';
+import { retrieve } from './retrieve';
 
 const readdir = promisify(fs.readdir);
 const stat = promisify(fs.stat);
@@ -66,8 +65,12 @@ export class CustomSObjectReader {
 
   private async writeByNamespace(namespace: string): Promise<void> {
     const customObjectNames = await this.queryCustomObjects(namespace);
-
-    const tmpDir = await this.retrieveObjects(customObjectNames);
+    const tmpDir = await retrieve(this.connection, [
+      {
+        members: customObjectNames.map(name => name.fullName()),
+        name: 'CustomObject',
+      },
+    ]);
     const alienNamespaces = new Set(this.namespaces);
     alienNamespaces.delete(namespace);
 
@@ -191,39 +194,6 @@ ${value.replace(/^<fields>\s/, '').replace(/\s<\/fields>$/, '')}
         .filter(sobjectName => sobjectName != null) as EntityName[];
     } catch (err) {
       throw ctxError(err, 'query');
-    }
-  }
-
-  private async retrieveObjects(names: EntityName[]): Promise<string> {
-    try {
-      const retrievePackage: Package = {
-        version: this.connection.version,
-        types: [
-          {
-            members: names.map(name => name.fullName()),
-            name: 'CustomObject',
-          },
-        ],
-      };
-
-      const retrieveOptions = {
-        apiVersion: this.connection.version,
-        unpackaged: retrievePackage,
-      };
-      const result = await this.connection.metadata
-        .retrieve(retrieveOptions)
-        .complete();
-
-      const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gulp'));
-
-      const zipBuffer = Buffer.from(
-        (result as unknown as RetrieveResult).zipFile,
-        'base64'
-      );
-      await decompress(zipBuffer, tmpDir);
-      return tmpDir;
-    } catch (err) {
-      throw ctxError(err, 'rerieval');
     }
   }
 }

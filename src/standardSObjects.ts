@@ -12,19 +12,18 @@
     derived from this software without specific prior written permission.
  */
 
-import * as path from 'path';
-import * as os from 'os';
 import * as fs from 'fs';
+import * as path from 'path';
 import { promisify } from 'util';
 import { resolve } from 'path';
-import decompress = require('decompress');
-import { Connection, Package, RetrieveResult } from 'jsforce';
+import { Connection } from 'jsforce';
 import { XMLParser } from 'fast-xml-parser';
 import { StubFS } from './stubfs';
 import { ctxError } from './error';
 import { EntityName, SObjectJSON } from './entity';
 import rimraf = require('rimraf');
 import { Logger, LoggerStage } from './logger';
+import { retrieve } from './retrieve';
 
 const readdir = promisify(fs.readdir);
 const stat = promisify(fs.stat);
@@ -66,7 +65,12 @@ export class StandardSObjectReader {
 
   private async writeByNamespace(namespace: string): Promise<void> {
     const standardObjectNames = await this.queryStandardObjects(namespace);
-    const tmpDir = await this.retrieveObjects(standardObjectNames);
+    const tmpDir = await retrieve(this.connection, [
+      {
+        members: standardObjectNames,
+        name: 'CustomObject',
+      },
+    ]);
 
     try {
       const files = await this.getFiles(tmpDir);
@@ -177,40 +181,6 @@ export class StandardSObjectReader {
         .filter(value => !this.isId(value));
     } catch (err) {
       throw ctxError(err, 'query');
-    }
-  }
-
-  private async retrieveObjects(names: string[]): Promise<string> {
-    try {
-      const retrievePackage: Package = {
-        version: this.connection.version,
-        types: [
-          {
-            members: names,
-            name: 'CustomObject',
-          },
-        ],
-      };
-
-      const retrieveOptions = {
-        apiVersion: this.connection.version,
-        unpackaged: retrievePackage,
-      };
-      const result = await this.connection.metadata
-        .retrieve(retrieveOptions)
-        .complete();
-
-      const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gulp'));
-
-      const zipBuffer = Buffer.from(
-        (result as unknown as RetrieveResult).zipFile,
-        'base64'
-      );
-      await decompress(zipBuffer, tmpDir);
-
-      return tmpDir;
-    } catch (err) {
-      throw ctxError(err, 'retrieve');
     }
   }
 
