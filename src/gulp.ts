@@ -14,21 +14,21 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { ComponentReader } from './components';
-import { FlowReader } from './flows';
-import { PageReader } from './pages';
-import { ClassReader } from './classes';
-import { LabelReader } from './labels';
-import { CustomSObjectReader } from './customSObjects';
-import { StubFS } from './stubfs';
-import { Logger } from './logger';
+import { ComponentReader } from './readers/components';
+import { FlowReader } from './readers/flows';
+import { PageReader } from './readers/pages';
+import { ClassReader } from './readers/classes';
+import { LabelReader } from './readers/labels';
+import { CustomSObjectReader } from './readers/customSObjects';
+import { StubFS } from './util/stubfs';
+import { Logger } from './util/logger';
 import { Aliases, AuthInfo, Connection } from '@salesforce/core';
-import { ConfigUtil } from './configUtils';
-import { StandardSObjectReader } from './standardSObjects';
+import { ConfigUtil } from './util/configUtils';
+import { StandardSObjectReader } from './readers/standardSObjects';
 import { Connection as JSConnection } from 'jsforce';
-import { ctxError } from './error';
+import { ctxError } from './util/error';
 
-export { Logger, LoggerStage } from './logger';
+export { Logger, LoggerStage } from './util/logger';
 
 const installedPackageFields = [
   'SubscriberPackage.NamespacePrefix',

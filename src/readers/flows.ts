@@ -14,11 +14,11 @@
 
 import * as path from 'path';
 import { Connection } from 'jsforce';
-import { StubFS } from './stubfs';
-import { ctxError } from './error';
-import { Logger, LoggerStage } from './logger';
+import { StubFS } from '../util/stubfs';
+import { ctxError } from '../util/error';
+import { Logger, LoggerStage } from '../util/logger';
 
-export class PageReader {
+export class FlowReader {
   private logger: Logger;
   private connection: Connection;
   private namespaces: string[];
@@ -27,6 +27,7 @@ export class PageReader {
   public constructor(
     logger: Logger,
     connection: Connection,
+    orgNamespace: string | null,
     namespaces: string[],
     stubFS: StubFS
   ) {
@@ -36,20 +37,19 @@ export class PageReader {
     this.stubFS = stubFS;
   }
 
-  public async run(): Promise<Error | void> {
+  public async run(): Promise<void> {
     try {
       const conditions = this.query();
       if (conditions.length > 0) {
         const pages = await this.connection.tooling
-          .sobject('ApexPage')
-          .find<PageInfo>(conditions, 'Name, NamespacePrefix, Markup')
+          .sobject('FlowDefinition')
+          .find<FlowInfo>(conditions, 'DeveloperName, NamespacePrefix')
           .execute({ autoFetch: true, maxFetch: 100000 });
-
         this.write(pages);
       }
-      this.logger.complete(LoggerStage.PAGES);
+      this.logger.complete(LoggerStage.FLOWS);
     } catch (err) {
-      throw ctxError(err, 'Pages query');
+      throw ctxError(err, 'Flows query');
     }
   }
 
@@ -64,34 +64,31 @@ export class PageReader {
     return conditions.join(' OR ');
   }
 
-  private write(pages: PageInfo[]): void {
-    const byNamespace: Map<string, PageInfo[]> = new Map();
+  private write(flows: FlowInfo[]): void {
+    const byNamespace: Map<string, FlowInfo[]> = new Map();
 
-    for (const page of pages) {
-      if (page.Markup != '(hidden)') {
-        let namespacePages = byNamespace.get(page.NamespacePrefix);
-        if (namespacePages == undefined) {
-          namespacePages = [];
-          byNamespace.set(page.NamespacePrefix, namespacePages);
-        }
-        namespacePages.push(page);
+    for (const flow of flows) {
+      let namespacePages = byNamespace.get(flow.NamespacePrefix);
+      if (namespacePages == undefined) {
+        namespacePages = [];
+        byNamespace.set(flow.NamespacePrefix, namespacePages);
       }
+      namespacePages.push(flow);
     }
 
-    byNamespace.forEach((namespacePages, namespace) => {
+    byNamespace.forEach((namespaceFlows, namespace) => {
       const targetDirectory = namespace == null ? 'unmanaged' : namespace;
-      for (const page of namespacePages) {
+      for (const flow of namespaceFlows) {
         this.stubFS.newFile(
-          path.join(targetDirectory, 'pages', `${page.Name}.page`),
-          page.Markup
+          path.join(targetDirectory, 'flows', `${flow.DeveloperName}.flow`),
+          ''
         );
       }
     });
   }
 }
 
-interface PageInfo {
-  Name: string;
+interface FlowInfo {
+  DeveloperName: string;
   NamespacePrefix: string;
-  Markup: string;
 }

@@ -16,6 +16,7 @@ import {
   Connection,
   Package,
   PackageTypeMembers,
+  RetrieveRequest,
   RetrieveResult,
 } from 'jsforce';
 import * as path from 'path';
@@ -23,6 +24,10 @@ import * as os from 'os';
 import * as fs from 'fs';
 import { ctxError } from './error';
 import decompress from 'decompress';
+import { promisify } from 'util';
+
+const readdir = promisify(fs.readdir);
+const stat = promisify(fs.stat);
 
 export async function retrieve(
   connection: Connection,
@@ -34,7 +39,7 @@ export async function retrieve(
       types: requests,
     };
 
-    const retrieveOptions = {
+    const retrieveOptions: RetrieveRequest = {
       apiVersion: connection.version,
       unpackaged: retrievePackage,
     };
@@ -43,7 +48,6 @@ export async function retrieve(
       .complete();
 
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gulp'));
-
     const zipBuffer = Buffer.from(
       (result as unknown as RetrieveResult).zipFile,
       'base64'
@@ -53,5 +57,21 @@ export async function retrieve(
     return tmpDir;
   } catch (err) {
     throw ctxError(err, 'retrieve');
+  }
+}
+
+export async function getFiles(dir: string): Promise<string[]> {
+  try {
+    const subdirs = await readdir(dir);
+    const files = await Promise.all(
+      subdirs.map(async subdir => {
+        const res = path.resolve(dir, subdir);
+        return (await stat(res)).isDirectory() ? getFiles(res) : [res];
+      })
+    );
+
+    return files.reduce((a, b) => a.concat(b), []);
+  } catch (err) {
+    throw ctxError(err, 'file listing');
   }
 }

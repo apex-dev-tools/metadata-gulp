@@ -14,10 +14,10 @@
 
 import * as path from 'path';
 import { Connection } from 'jsforce';
-import { StubFS } from './stubfs';
-import { chunk } from './arrays';
-import { Logger, LoggerStage } from './logger';
-import { ctxError } from './error';
+import { StubFS } from '../util/stubfs';
+import { chunk } from '../util/arrays';
+import { Logger, LoggerStage } from '../util/logger';
+import { ctxError } from '../util/error';
 
 export class ClassReader {
   private logger: Logger;
@@ -37,7 +37,7 @@ export class ClassReader {
     this.stubFS = stubFS;
   }
 
-  public async run(): Promise<void[][]> {
+  public async run(): Promise<void[]> {
     try {
       const allNamespaces = new Set<string>(this.namespaces);
       return Promise.all(
@@ -48,20 +48,37 @@ export class ClassReader {
     }
   }
 
-  private async queryByNamespace(namespace: string): Promise<void[]> {
-    const classNames = await this.getValidClassNames(namespace);
+  private async queryByNamespace(namespace: string): Promise<void> {
+    let unprocessed = await this.getAllClassNames(namespace);
 
-    const chunks = chunk(classNames, 200);
+    while (unprocessed.length > 0) {
+      this.logger.debug(
+        `Downloading ${unprocessed.length} classes for namespace ${namespace}`
+      );
 
-    return Promise.all(
-      chunks.map(chunk => this.queryByChunk(namespace, chunk))
-    );
+      const rejected = await Promise.all(
+        chunk(unprocessed, 200).map(chunk =>
+          this.bulkLoadClasses(namespace, chunk)
+        )
+      );
+
+      const invalid: string[] = rejected.reduce(
+        (acc, val) => acc.concat(val),
+        []
+      );
+      this.logger.debug(
+        `Downloading chunk return ${invalid.length} as invalid`
+      );
+
+      unprocessed = invalid;
+      await this.refreshClasses(namespace, unprocessed.slice(0, 100));
+    }
   }
 
-  private async queryByChunk(
+  private async bulkLoadClasses(
     namespace: string,
     chunk: string[]
-  ): Promise<void> {
+  ): Promise<string[]> {
     try {
       const isUnmanged = namespace == 'unmanaged';
       const namespaceClause = isUnmanged
@@ -76,21 +93,13 @@ export class ClassReader {
         )
         .execute({ autoFetch: true, maxFetch: 100000 });
 
-      const invalid = records
-        .filter(cls => cls.IsValid == false)
-        .map(cls => cls.Name);
-      if (invalid.length > 0) {
-        this.logger.debug(
-          `Invalid classes, these will be ignored: ${invalid.join(', ')}`
-        );
-      }
-      this.write(records);
+      return this.writeValid(records);
     } catch (err) {
       throw ctxError(err, 'query chunk');
     }
   }
 
-  private async getValidClassNames(namespace: string): Promise<string[]> {
+  private async getAllClassNames(namespace: string): Promise<string[]> {
     try {
       const isUnmanged = namespace == 'unmanaged';
       const namespaceClause = isUnmanged
@@ -100,23 +109,6 @@ export class ClassReader {
         .sobject('ApexClass')
         .find<ClassInfo>(`Status = 'Active' AND ${namespaceClause}`, 'Name')
         .execute({ autoFetch: true, maxFetch: 100000 });
-
-      const statuses = await this.refreshClasses(
-        namespace,
-        records.map(cls => cls.Name)
-      );
-
-      statuses.map(status => {
-        if (!status.success) {
-          const exceptionMessage =
-            status.exceptionMessage || 'Unknown Exception';
-          const exceptionStackTrace =
-            status.exceptionStackTrace || 'No stack trace';
-          this.logger.debug(
-            `Class validation failed: ${exceptionMessage}\n${exceptionStackTrace}`
-          );
-        }
-      });
 
       return records.map(record => record.Name);
     } catch (err) {
@@ -148,11 +140,14 @@ export class ClassReader {
     }
   }
 
-  private write(classes: ClassInfo[]): void {
+  private writeValid(classes: ClassInfo[]): string[] {
+    const invalid: string[] = [];
     const byNamespace: Map<string, ClassInfo[]> = new Map();
 
     for (const cls of classes) {
-      if (cls.Body != '(hidden)') {
+      if (!cls.IsValid) {
+        invalid.push(cls.Name);
+      } else if (cls.Body != '(hidden)') {
         let namespaceClasses = byNamespace.get(cls.NamespacePrefix);
         if (namespaceClasses == undefined) {
           namespaceClasses = [];
@@ -171,6 +166,8 @@ export class ClassReader {
         );
       }
     });
+
+    return invalid;
   }
 }
 

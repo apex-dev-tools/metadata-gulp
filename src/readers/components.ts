@@ -12,13 +12,13 @@
     derived from this software without specific prior written permission.
  */
 
-import { Connection } from 'jsforce';
 import * as path from 'path';
-import { ctxError } from './error';
-import { Logger, LoggerStage } from './logger';
-import { StubFS } from './stubfs';
+import { Connection } from 'jsforce';
+import { StubFS } from '../util/stubfs';
+import { ctxError } from '../util/error';
+import { Logger, LoggerStage } from '../util/logger';
 
-export class LabelReader {
+export class ComponentReader {
   private logger: Logger;
   private connection: Connection;
   private namespaces: string[];
@@ -40,16 +40,15 @@ export class LabelReader {
     try {
       const conditions = this.query();
       if (conditions.length > 0) {
-        const labels = await this.connection.tooling
-          .sobject('ExternalString')
-          .find<LabelInfo>(conditions, 'Name, NamespacePrefix')
+        const components = await this.connection.tooling
+          .sobject('ApexComponent')
+          .find<ComponentInfo>(conditions, 'Name, NamespacePrefix, Markup')
           .execute({ autoFetch: true, maxFetch: 100000 });
-
-        this.writeLabels(labels);
+        this.write(components);
       }
-      this.logger.complete(LoggerStage.LABELS);
+      this.logger.complete(LoggerStage.COMPONENTS);
     } catch (err) {
-      throw ctxError(err, 'Labels query');
+      throw ctxError(err, 'Components query');
     }
   }
 
@@ -58,55 +57,44 @@ export class LabelReader {
       if (namespace == 'unmanaged') {
         return 'NamespacePrefix = null';
       } else {
-        return `(NamespacePrefix = '${namespace}' AND IsProtected = false)`;
+        return `NamespacePrefix = '${namespace}'`;
       }
     });
     return conditions.join(' OR ');
   }
 
-  private writeLabels(labels: LabelInfo[]): void {
-    const byNamespace: Map<string, string[]> = new Map();
+  private write(components: ComponentInfo[]): void {
+    const byNamespace: Map<string, ComponentInfo[]> = new Map();
 
-    for (const label of labels) {
-      let namespaceLabels = byNamespace.get(label.NamespacePrefix);
-      if (namespaceLabels == undefined) {
-        namespaceLabels = [];
-        byNamespace.set(label.NamespacePrefix, namespaceLabels);
+    for (const component of components) {
+      if (component.Markup != '(hidden)') {
+        let namespaceComponents = byNamespace.get(component.NamespacePrefix);
+        if (namespaceComponents == undefined) {
+          namespaceComponents = [];
+          byNamespace.set(component.NamespacePrefix, namespaceComponents);
+        }
+        namespaceComponents.push(component);
       }
-      namespaceLabels.push(label.Name);
     }
 
-    byNamespace.forEach((namespaceLabels, namespace) => {
+    byNamespace.forEach((namespaceComponents, namespace) => {
       const targetDirectory = namespace == null ? 'unmanaged' : namespace;
-      this.stubFS.newFile(
-        path.join(targetDirectory, 'CustomLabels.labels-meta.xml'),
-        this.createLabels(namespaceLabels)
-      );
+      for (const component of namespaceComponents) {
+        this.stubFS.newFile(
+          path.join(
+            targetDirectory,
+            'components',
+            `${component.Name}.component`
+          ),
+          component.Markup
+        );
+      }
     });
-  }
-
-  private createLabels(labelNames: string[]): string {
-    const labelDefinitions = labelNames
-      .map(name => {
-        return `   <labels>
-        <fullName>${name}</fullName>
-        <language>en_US</language>
-        <protected>false</protected>
-        <shortDescription></shortDescription>
-        <value></value>
-    </labels>`;
-      })
-      .join('\n');
-
-    return `<?xml version="1.0" encoding="UTF-8"?>
-<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
-${labelDefinitions}
-</CustomLabels>
-`;
   }
 }
 
-interface LabelInfo {
+interface ComponentInfo {
   Name: string;
   NamespacePrefix: string;
+  Markup: string;
 }

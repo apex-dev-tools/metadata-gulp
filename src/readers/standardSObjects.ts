@@ -14,19 +14,14 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { promisify } from 'util';
-import { resolve } from 'path';
 import { Connection } from 'jsforce';
 import { XMLParser } from 'fast-xml-parser';
-import { StubFS } from './stubfs';
-import { ctxError } from './error';
-import { EntityName, SObjectJSON } from './entity';
+import { StubFS } from '../util/stubfs';
+import { ctxError } from '../util/error';
+import { EntityName, SObjectJSON } from '../util/entity';
 import rimraf = require('rimraf');
-import { Logger, LoggerStage } from './logger';
-import { retrieve } from './retrieve';
-
-const readdir = promisify(fs.readdir);
-const stat = promisify(fs.stat);
+import { Logger, LoggerStage } from '../util/logger';
+import { getFiles, retrieve } from '../util/retrieve';
 
 export class StandardSObjectReader {
   private logger: Logger;
@@ -73,7 +68,7 @@ export class StandardSObjectReader {
     ]);
 
     try {
-      const files = await this.getFiles(tmpDir);
+      const files = await getFiles(tmpDir);
 
       files
         .filter(name => name.endsWith('.object'))
@@ -146,22 +141,6 @@ export class StandardSObjectReader {
       return fieldContents;
     } else {
       return new Map<string, string>();
-    }
-  }
-
-  private async getFiles(dir: string): Promise<string[]> {
-    try {
-      const subdirs = await readdir(dir);
-      const files = await Promise.all(
-        subdirs.map(async subdir => {
-          const res = resolve(dir, subdir);
-          return (await stat(res)).isDirectory() ? this.getFiles(res) : [res];
-        })
-      );
-
-      return files.reduce((a, b) => a.concat(b), []);
-    } catch (err) {
-      throw ctxError(err, 'file listing');
     }
   }
 
