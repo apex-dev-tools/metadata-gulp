@@ -18,12 +18,15 @@ import { StubFS } from '../util/stubfs';
 import { chunk } from '../util/arrays';
 import { Logger, LoggerStage } from '../util/logger';
 import { ctxError } from '../util/error';
+import PQueue from 'p-queue';
 
 export class ClassReader {
+  private static readonly MAX_INVALID = 50000;
   private logger: Logger;
   private connection: Connection;
   private namespaces: string[];
   private stubFS: StubFS;
+  private queue = new PQueue({ concurrency: 15 });
 
   public constructor(
     logger: Logger,
@@ -37,48 +40,53 @@ export class ClassReader {
     this.stubFS = stubFS;
   }
 
-  public async run(): Promise<void[]> {
+  public async run(): Promise<void[][]> {
     try {
       const allNamespaces = new Set<string>(this.namespaces);
-      return Promise.all(
-        [...allNamespaces].map(namespace => this.queryByNamespace(namespace))
-      ).finally(() => this.logger.complete(LoggerStage.CLASSES));
+      return this.queue
+        .addAll(
+          [...allNamespaces].map(
+            namespace => () => this.queryByNamespace(namespace)
+          )
+        )
+        .finally(() => this.logger.complete(LoggerStage.CLASSES));
     } catch (err) {
       throw ctxError(err, 'Classes');
     }
   }
 
-  private async queryByNamespace(namespace: string): Promise<void> {
-    let unprocessed = await this.getAllClassNames(namespace);
+  private async queryByNamespace(namespace: string): Promise<void[]> {
+    await this.refreshInvalid(namespace);
 
-    while (unprocessed.length > 0) {
-      this.logger.debug(
-        `Downloading ${unprocessed.length} classes for namespace ${namespace}`
-      );
+    // Try short cut via loading from ApexClass
+    const validClasses = await this.getClassNames(namespace, true);
+    const chunks = chunk(validClasses, 100);
+    return this.queue.addAll(
+      chunks.map(c => () => this.bulkLoadClasses(namespace, c))
+    );
+  }
 
-      const rejected = await Promise.all(
-        chunk(unprocessed, 200).map(chunk =>
-          this.bulkLoadClasses(namespace, chunk)
-        )
-      );
+  private async refreshInvalid(namespace: string): Promise<boolean> {
+    const refreshed: Set<string> = new Set();
+    let invalid = await this.getClassNames(namespace, false);
+    if (invalid.length > ClassReader.MAX_INVALID) return false;
 
-      const invalid: string[] = rejected.reduce(
-        (acc, val) => acc.concat(val),
-        []
-      );
-      this.logger.debug(
-        `Downloading chunk return ${invalid.length} as invalid`
-      );
+    while (invalid.length > 0) {
+      const refresh = invalid.slice(0, 100);
+      refresh.forEach(cls => refreshed.add(cls));
+      await this.refreshClasses(namespace, refresh);
 
-      unprocessed = invalid;
-      await this.refreshClasses(namespace, unprocessed.slice(0, 100));
+      invalid = await this.getClassNames(namespace, false);
+      invalid = invalid.filter(cls => !refreshed.has(cls));
     }
+
+    return true;
   }
 
   private async bulkLoadClasses(
     namespace: string,
     chunk: string[]
-  ): Promise<string[]> {
+  ): Promise<void> {
     try {
       const isUnmanged = namespace == 'unmanaged';
       const namespaceClause = isUnmanged
@@ -88,7 +96,7 @@ export class ClassReader {
       const records = await this.connection.tooling
         .sobject('ApexClass')
         .find<ClassInfo>(
-          `Status = 'Active' AND ${namespaceClause} AND (${names})`,
+          `Status = 'Active' AND IsValid = true AND ${namespaceClause} AND (${names})`,
           'Name, NamespacePrefix, IsValid, Body'
         )
         .execute({ autoFetch: true, maxFetch: 100000 });
@@ -99,55 +107,53 @@ export class ClassReader {
     }
   }
 
-  private async getAllClassNames(namespace: string): Promise<string[]> {
+  private async getClassNames(
+    namespace: string,
+    isValid: boolean
+  ): Promise<string[]> {
     try {
       const isUnmanged = namespace == 'unmanaged';
       const namespaceClause = isUnmanged
         ? 'NamespacePrefix = null'
         : `NamespacePrefix = '${namespace}'`;
+      const valid = isValid ? 'true' : 'false';
       const records = await this.connection.tooling
         .sobject('ApexClass')
-        .find<ClassInfo>(`Status = 'Active' AND ${namespaceClause}`, 'Name')
+        .find<ClassInfo>(
+          `IsValid = ${valid} AND Status = 'Active' AND ${namespaceClause}`,
+          'Name'
+        )
         .execute({ autoFetch: true, maxFetch: 100000 });
 
       return records.map(record => record.Name);
     } catch (err) {
-      throw ctxError(err, 'query valid');
+      throw ctxError(err, 'query invalid');
     }
   }
 
   private async refreshClasses(
     namespace: string,
     classes: string[]
-  ): Promise<AnonymousResult[]> {
+  ): Promise<AnonymousResult> {
     try {
       const isUnmanged = namespace == 'unmanaged';
-      const chunks = chunk(classes, 50);
-
-      return Promise.all(
-        chunks.map(chunk => {
-          const anon = chunk
-            .map(cls => {
-              const fullName = isUnmanged ? cls : `${namespace}.${cls}`;
-              return `Type.forName('${fullName}');`;
-            })
-            .join('\n');
-          return this.connection.tooling.executeAnonymous(anon);
+      const anon = classes
+        .map(cls => {
+          const fullName = isUnmanged ? cls : `${namespace}.${cls}`;
+          return `Type.forName('${fullName}');`;
         })
-      );
+        .join('\n');
+      return this.connection.tooling.executeAnonymous(anon);
     } catch (err) {
       throw ctxError(err, 'excute anonymous');
     }
   }
 
-  private writeValid(classes: ClassInfo[]): string[] {
-    const invalid: string[] = [];
+  private writeValid(classes: ClassInfo[]): void {
     const byNamespace: Map<string, ClassInfo[]> = new Map();
 
     for (const cls of classes) {
-      if (!cls.IsValid) {
-        invalid.push(cls.Name);
-      } else if (cls.Body != '(hidden)') {
+      if (cls.IsValid && cls.Body != '(hidden)') {
         let namespaceClasses = byNamespace.get(cls.NamespacePrefix);
         if (namespaceClasses == undefined) {
           namespaceClasses = [];
@@ -166,8 +172,6 @@ export class ClassReader {
         );
       }
     });
-
-    return invalid;
   }
 }
 

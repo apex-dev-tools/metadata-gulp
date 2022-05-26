@@ -27,38 +27,12 @@ import { ConfigUtil } from './util/configUtils';
 import { StandardSObjectReader } from './readers/standardSObjects';
 import { Connection as JSConnection } from 'jsforce';
 import { ctxError } from './util/error';
+import {
+  InstalledPackages,
+  SubscriberPackageVersion,
+} from './util/installedPackages';
 
 export { Logger, LoggerStage } from './util/logger';
-
-const installedPackageFields = [
-  'SubscriberPackage.NamespacePrefix',
-  'SubscriberPackage.Name',
-  'SubscriberPackage.Description',
-  'SubscriberPackageVersion.Name',
-  'SubscriberPackageVersion.MajorVersion',
-  'SubscriberPackageVersion.MinorVersion',
-  'SubscriberPackageVersion.PatchVersion',
-  'SubscriberPackageVersion.BuildNumber',
-];
-
-interface SubscriberPackage {
-  NamespacePrefix: string;
-  Name: string;
-  Description: string;
-}
-
-interface SubscriberPackageVersion {
-  Name: string;
-  MajorVersion: number;
-  MinorVersion: number;
-  PatchVersion: number;
-  BuildNumber: number;
-}
-
-interface InstalledSubscriberPackage {
-  SubscriberPackage: SubscriberPackage;
-  SubscriberPackageVersion: SubscriberPackageVersion;
-}
 
 export class NamespaceInfo {
   namespace: string;
@@ -71,7 +45,7 @@ export class NamespaceInfo {
 }
 
 export class Gulp {
-  private POLL_TIMEOUT = 10 * 60 * 1000;
+  private POLL_TIMEOUT = 60 * 60 * 1000;
 
   public async getDefaultUsername(
     workspacePath: string
@@ -123,12 +97,8 @@ export class Gulp {
     if (orgNamespace === undefined)
       throw new Error('Unable to query org default namespace');
 
-    const results = await localConnection.tooling
-      .sobject('InstalledSubscriberPackage')
-      .find<InstalledSubscriberPackage>('', installedPackageFields.join(','))
-      .execute({ autoFetch: true, maxFetch: 100000 });
-
-    const infos = results
+    const packages = await InstalledPackages.getInstance().get(localConnection);
+    const infos = packages
       .filter(info => info.SubscriberPackage.NamespacePrefix != null)
       .sort((a, b) =>
         a.SubscriberPackage.NamespacePrefix.localeCompare(

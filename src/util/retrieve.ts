@@ -60,6 +60,47 @@ export async function retrieve(
   }
 }
 
+export async function retrievePackage(
+  connection: Connection,
+  packageName: string
+): Promise<string> {
+  try {
+    let retrieveOptions: RetrieveRequest = {
+      apiVersion: connection.version,
+      packageNames: [packageName],
+      singlePackage: true,
+    };
+    if (packageName == '') {
+      retrieveOptions = {
+        apiVersion: connection.version,
+        unpackaged: {
+          version: connection.version,
+          types: [
+            {
+              members: ['*'],
+              name: 'ApexClass',
+            },
+          ],
+        },
+      };
+    }
+    const result = await connection.metadata
+      .retrieve(retrieveOptions)
+      .complete();
+
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gulp'));
+    const zipBuffer = Buffer.from(
+      (result as unknown as RetrieveResult).zipFile,
+      'base64'
+    );
+    await decompress(zipBuffer, tmpDir);
+
+    return tmpDir;
+  } catch (err) {
+    throw ctxError(err, 'retrieve');
+  }
+}
+
 export async function getFiles(dir: string): Promise<string[]> {
   try {
     const subdirs = await readdir(dir);
