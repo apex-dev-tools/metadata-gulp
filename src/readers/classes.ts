@@ -18,7 +18,7 @@ import { StubFS } from '../util/stubfs';
 import { chunk } from '../util/arrays';
 import { Logger, LoggerStage } from '../util/logger';
 import { ctxError } from '../util/error';
-import PQueue from 'p-queue';
+import { default as PQueue } from 'p-queue';
 
 export class ClassReader {
   private static readonly MAX_INVALID = 50000;
