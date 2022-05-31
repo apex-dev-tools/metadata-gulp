@@ -19,6 +19,7 @@ import { chunk } from '../util/arrays';
 import { Logger, LoggerStage } from '../util/logger';
 import { ctxError } from '../util/error';
 import { default as PQueue } from 'p-queue';
+import { Symbols, TypeDeclaration } from '../util/symbols';
 
 export class ClassReader {
   private static readonly MAX_INVALID = 50000;
@@ -56,31 +57,12 @@ export class ClassReader {
   }
 
   private async queryByNamespace(namespace: string): Promise<void[]> {
-    await this.refreshInvalid(namespace);
-
     // Try short cut via loading from ApexClass
-    const validClasses = await this.getClassNames(namespace, true);
-    const chunks = chunk(validClasses, 100);
+    const validClasses = await this.getClassNames(namespace);
+    const chunks = chunk(validClasses, 50);
     return this.queue.addAll(
       chunks.map(c => () => this.bulkLoadClasses(namespace, c))
     );
-  }
-
-  private async refreshInvalid(namespace: string): Promise<boolean> {
-    const refreshed: Set<string> = new Set();
-    let invalid = await this.getClassNames(namespace, false);
-    if (invalid.length > ClassReader.MAX_INVALID) return false;
-
-    while (invalid.length > 0) {
-      const refresh = invalid.slice(0, 100);
-      refresh.forEach(cls => refreshed.add(cls));
-      await this.refreshClasses(namespace, refresh);
-
-      invalid = await this.getClassNames(namespace, false);
-      invalid = invalid.filter(cls => !refreshed.has(cls));
-    }
-
-    return true;
   }
 
   private async bulkLoadClasses(
@@ -96,8 +78,8 @@ export class ClassReader {
       const records = await this.connection.tooling
         .sobject('ApexClass')
         .find<ClassInfo>(
-          `Status = 'Active' AND IsValid = true AND ${namespaceClause} AND (${names})`,
-          'Name, NamespacePrefix, IsValid, Body'
+          `Status = 'Active' AND ${namespaceClause} AND (${names})`,
+          'Name, NamespacePrefix, SymbolTable'
         )
         .execute({ autoFetch: true, maxFetch: 100000 });
 
@@ -107,22 +89,15 @@ export class ClassReader {
     }
   }
 
-  private async getClassNames(
-    namespace: string,
-    isValid: boolean
-  ): Promise<string[]> {
+  private async getClassNames(namespace: string): Promise<string[]> {
     try {
       const isUnmanged = namespace == 'unmanaged';
       const namespaceClause = isUnmanged
         ? 'NamespacePrefix = null'
         : `NamespacePrefix = '${namespace}'`;
-      const valid = isValid ? 'true' : 'false';
       const records = await this.connection.tooling
         .sobject('ApexClass')
-        .find<ClassInfo>(
-          `IsValid = ${valid} AND Status = 'Active' AND ${namespaceClause}`,
-          'Name'
-        )
+        .find<ClassInfo>(`Status = 'Active' AND ${namespaceClause}`, 'Name')
         .execute({ autoFetch: true, maxFetch: 100000 });
 
       return records.map(record => record.Name);
@@ -131,29 +106,11 @@ export class ClassReader {
     }
   }
 
-  private async refreshClasses(
-    namespace: string,
-    classes: string[]
-  ): Promise<AnonymousResult> {
-    try {
-      const isUnmanged = namespace == 'unmanaged';
-      const anon = classes
-        .map(cls => {
-          const fullName = isUnmanged ? cls : `${namespace}.${cls}`;
-          return `Type.forName('${fullName}');`;
-        })
-        .join('\n');
-      return this.connection.tooling.executeAnonymous(anon);
-    } catch (err) {
-      throw ctxError(err, 'excute anonymous');
-    }
-  }
-
   private writeValid(classes: ClassInfo[]): void {
     const byNamespace: Map<string, ClassInfo[]> = new Map();
 
     for (const cls of classes) {
-      if (cls.IsValid && cls.Body != '(hidden)') {
+      if (cls.SymbolTable) {
         let namespaceClasses = byNamespace.get(cls.NamespacePrefix);
         if (namespaceClasses == undefined) {
           namespaceClasses = [];
@@ -166,9 +123,12 @@ export class ClassReader {
     byNamespace.forEach((namespaceClasses, namespace) => {
       const targetDirectory = namespace == null ? 'unmanaged' : namespace;
       for (const cls of namespaceClasses) {
+        const symbols = new Symbols(
+          cls.SymbolTable as unknown as TypeDeclaration
+        );
         this.stubFS.newFile(
           path.join(targetDirectory, 'classes', `${cls.Name}.cls`),
-          cls.Body
+          symbols.asApex()
         );
       }
     });
@@ -178,8 +138,7 @@ export class ClassReader {
 interface ClassInfo {
   Name: string;
   NamespacePrefix: string;
-  IsValid: boolean;
-  Body: string;
+  SymbolTable: string;
 }
 
 export interface AnonymousResult {
