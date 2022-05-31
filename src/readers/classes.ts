@@ -19,7 +19,6 @@ import { chunk } from '../util/arrays';
 import { Logger, LoggerStage } from '../util/logger';
 import { ctxError } from '../util/error';
 import { default as PQueue } from 'p-queue';
-import { Symbols, TypeDeclaration } from '../util/symbols';
 
 export class ClassReader {
   private static readonly MAX_INVALID = 50000;
@@ -58,38 +57,14 @@ export class ClassReader {
 
   private async queryByNamespace(namespace: string): Promise<void[]> {
     // Try short cut via loading from ApexClass
-    const validClasses = await this.getClassNames(namespace);
-    const chunks = chunk(validClasses, 50);
+    const validClasses = await this.getClassIds(namespace);
+    const chunks = chunk(validClasses, 200);
     return this.queue.addAll(
       chunks.map(c => () => this.bulkLoadClasses(namespace, c))
     );
   }
 
-  private async bulkLoadClasses(
-    namespace: string,
-    chunk: string[]
-  ): Promise<void> {
-    try {
-      const isUnmanged = namespace == 'unmanaged';
-      const namespaceClause = isUnmanged
-        ? 'NamespacePrefix = null'
-        : `NamespacePrefix = '${namespace}'`;
-      const names = chunk.map(name => `Name='${name}'`).join(' OR ');
-      const records = await this.connection.tooling
-        .sobject('ApexClass')
-        .find<ClassInfo>(
-          `Status = 'Active' AND ${namespaceClause} AND (${names})`,
-          'Name, NamespacePrefix, SymbolTable'
-        )
-        .execute({ autoFetch: true, maxFetch: 100000 });
-
-      return this.writeValid(records);
-    } catch (err) {
-      throw ctxError(err, 'query chunk');
-    }
-  }
-
-  private async getClassNames(namespace: string): Promise<string[]> {
+  private async getClassIds(namespace: string): Promise<string[]> {
     try {
       const isUnmanged = namespace == 'unmanaged';
       const namespaceClause = isUnmanged
@@ -97,48 +72,49 @@ export class ClassReader {
         : `NamespacePrefix = '${namespace}'`;
       const records = await this.connection.tooling
         .sobject('ApexClass')
-        .find<ClassInfo>(`Status = 'Active' AND ${namespaceClause}`, 'Name')
+        .find<ClassInfoId>(`Status = 'Active' AND ${namespaceClause}`, 'Id')
         .execute({ autoFetch: true, maxFetch: 100000 });
 
-      return records.map(record => record.Name);
+      return records.map(record => record.Id);
     } catch (err) {
       throw ctxError(err, 'query invalid');
     }
   }
 
-  private writeValid(classes: ClassInfo[]): void {
-    const byNamespace: Map<string, ClassInfo[]> = new Map();
-
-    for (const cls of classes) {
-      if (cls.SymbolTable) {
-        let namespaceClasses = byNamespace.get(cls.NamespacePrefix);
-        if (namespaceClasses == undefined) {
-          namespaceClasses = [];
-          byNamespace.set(cls.NamespacePrefix, namespaceClasses);
-        }
-        namespaceClasses.push(cls);
-      }
+  private async bulkLoadClasses(
+    namespace: string,
+    ids: string[]
+  ): Promise<void> {
+    try {
+      const idClause = ids.map(id => `'${id}'`).join(', ');
+      const records = await this.connection.tooling
+        .sobject('ApexClass')
+        .find<ClassInfoBody>(`Id IN (${idClause})`, 'Name, Body')
+        .execute();
+      return this.writeValid(namespace, records);
+    } catch (err) {
+      throw ctxError(err, 'query chunk');
     }
+  }
 
-    byNamespace.forEach((namespaceClasses, namespace) => {
-      const targetDirectory = namespace == null ? 'unmanaged' : namespace;
-      for (const cls of namespaceClasses) {
-        const symbols = new Symbols(
-          cls.SymbolTable as unknown as TypeDeclaration
-        );
-        this.stubFS.newFile(
-          path.join(targetDirectory, 'classes', `${cls.Name}.cls`),
-          symbols.asApex()
-        );
-      }
+  private writeValid(namespace: string, classes: ClassInfoBody[]): void {
+    const targetDirectory = namespace == null ? 'unmanaged' : namespace;
+    classes.forEach(cls => {
+      this.stubFS.newFile(
+        path.join(targetDirectory, 'classes', `${cls.Name}.cls`),
+        cls.Body
+      );
     });
   }
 }
 
-interface ClassInfo {
+interface ClassInfoBody {
   Name: string;
-  NamespacePrefix: string;
-  SymbolTable: string;
+  Body: string;
+}
+
+interface ClassInfoId {
+  Id: string;
 }
 
 export interface AnonymousResult {
