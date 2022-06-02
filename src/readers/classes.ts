@@ -19,6 +19,10 @@ import { chunk } from '../util/arrays';
 import { Logger, LoggerStage } from '../util/logger';
 import { ctxError } from '../util/error';
 import { default as PQueue } from 'p-queue';
+import {
+  createClientAsync,
+  PartnerWsdlClient,
+} from '../generated/partnerwsdl/client';
 
 export class ClassReader {
   private static readonly MAX_INVALID = 50000;
@@ -60,7 +64,7 @@ export class ClassReader {
     const validClasses = await this.getClassIds(namespace);
     const chunks = chunk(validClasses, 200);
     return this.queue.addAll(
-      chunks.map(c => () => this.bulkLoadClasses(namespace, c))
+      chunks.map(c => () => this.bulkLoadClassesSOAP(namespace, c))
     );
   }
 
@@ -81,29 +85,53 @@ export class ClassReader {
     }
   }
 
-  private async bulkLoadClasses(
+  private async bulkLoadClassesSOAP(
     namespace: string,
     ids: string[]
   ): Promise<void> {
     try {
+      const client = await this.createSOAPClient();
       const idClause = ids.map(id => `'${id}'`).join(', ');
-      const records = await this.connection.tooling
-        .sobject('ApexClass')
-        .find<ClassInfoBody>(`Id IN (${idClause})`, 'Name, Body')
-        .execute();
-      return this.writeValid(namespace, records);
+      const results = await client.queryAsync({
+        queryString: `Select Name, Body from ApexClass Where Id in (${idClause})`,
+      });
+      const classes = results[0].result?.records as ClassInfoBody[];
+      this.writeValid(namespace, classes);
     } catch (err) {
       throw ctxError(err, 'query chunk');
     }
   }
 
+  private async createSOAPClient(): Promise<PartnerWsdlClient> {
+    const client: PartnerWsdlClient = await createClientAsync(
+      path.join(__dirname, '..', '..', 'partner.wsdl.xml')
+    );
+    client.setEndpoint(
+      [
+        this.connection.instanceUrl,
+        'services/Soap/u',
+        this.connection.version,
+      ].join('/')
+    );
+    const sheader = {
+      SessionHeader: {
+        sessionId: this.connection.accessToken,
+      },
+    };
+    client.addSoapHeader(sheader, '', 'tns', 'urn:partner.soap.sforce.com');
+    return client;
+  }
+
   private writeValid(namespace: string, classes: ClassInfoBody[]): void {
     const targetDirectory = namespace == null ? 'unmanaged' : namespace;
     classes.forEach(cls => {
-      this.stubFS.newFile(
-        path.join(targetDirectory, 'classes', `${cls.Name}.cls`),
-        cls.Body
-      );
+      const hasBody = cls.Body && cls.Body.length > 0 && cls.Body != '(hidden)';
+      if (hasBody) {
+        this.stubFS.newFile(
+          path.join(targetDirectory, 'classes', `${cls.Name}.cls`),
+          cls.Body
+        );
+      }
     });
   }
 }
