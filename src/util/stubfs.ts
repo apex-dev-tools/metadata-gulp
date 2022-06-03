@@ -45,8 +45,10 @@ export class StubFS {
     // Overwrite files only if they have changed to reduce thrash
     const allFiles = new Set(await this.getFiles(this.storePath));
     this.newFiles.forEach(filePath => {
+      const sourcePath = path.join(this.cachePath, filePath);
+      const contents = fs.readFileSync(sourcePath, 'utf8');
+
       const targetPath = path.join(this.storePath, filePath);
-      const contents = fs.readFileSync(targetPath, 'utf8');
       const directory = path.dirname(targetPath);
       fs.mkdirSync(directory, { recursive: true });
 

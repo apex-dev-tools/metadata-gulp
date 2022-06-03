@@ -170,7 +170,10 @@ export class Gulp {
     }
 
     const otherNamespaces = Array.from(uniqueNamespaces.keys());
-    const stubFS = new StubFS(workspacePath, partialLoad ? namespaces : []);
+    const stubFS = new StubFS(
+      workspacePath,
+      partialLoad ? otherNamespaces : []
+    );
 
     const labelsReader = new LabelReader(
       logger,
