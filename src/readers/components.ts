@@ -89,6 +89,9 @@ export class ComponentReader {
           component.Markup
         );
       }
+      this.logger.debug(
+        `Loaded ${namespaceComponents.length} components from namespace ${namespace}`
+      );
     });
   }
 }

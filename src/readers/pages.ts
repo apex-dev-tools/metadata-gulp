@@ -86,6 +86,9 @@ export class PageReader {
           page.Markup
         );
       }
+      this.logger.debug(
+        `Loaded ${namespacePages.length} pages from namespace ${namespace}`
+      );
     });
   }
 }

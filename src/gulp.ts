@@ -161,6 +161,9 @@ export class Gulp {
     );
     if (orgNamespace === undefined)
       throw new Error('Could not obtain the org default namespace');
+    logger.debug(
+      `Org namespace is ${orgNamespace == null ? 'null' : orgNamespace}`
+    );
 
     const uniqueNamespaces = new Set(namespaces);
     if (orgNamespace != null && uniqueNamespaces.has('unmanaged')) {
@@ -174,6 +177,7 @@ export class Gulp {
       workspacePath,
       partialLoad ? otherNamespaces : []
     );
+    logger.debug(`Target namespace(s) are ${otherNamespaces.join(', ')}`);
 
     const labelsReader = new LabelReader(
       logger,
@@ -230,6 +234,7 @@ export class Gulp {
       componentReader,
       flowReader,
     ]);
+    logger.debug('Waiting on readers to complete');
 
     return loaded.then(
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -237,6 +242,12 @@ export class Gulp {
         return stubFS.sync();
       },
       err => {
+        if (err instanceof Error)
+          logger.debug(
+            `Error from readers ${err.message}, stack = ${
+              err.stack ? err.stack : '<not set>'
+            }`
+          );
         throw err;
       }
     );

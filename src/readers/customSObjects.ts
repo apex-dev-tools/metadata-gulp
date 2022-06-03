@@ -60,12 +60,17 @@ export class CustomSObjectReader {
 
   private async writeByNamespace(namespace: string): Promise<void> {
     const customObjectNames = await this.queryCustomObjects(namespace);
+    this.logger.debug(
+      `Found ${customObjectNames.length} custom objects for namespace ${namespace} `
+    );
+    if (customObjectNames.length == 0) return;
     const tmpDir = await retrieve(this.connection, [
       {
         members: customObjectNames.map(name => name.fullName()),
         name: 'CustomObject',
       },
     ]);
+    this.logger.debug(`Retrieved custom objects for namespace ${namespace} `);
     const alienNamespaces = new Set(this.namespaces);
     alienNamespaces.delete(namespace);
 
