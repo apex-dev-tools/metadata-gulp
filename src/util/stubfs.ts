@@ -12,33 +12,41 @@
     derived from this software without specific prior written permission.
  */
 
+import * as os from 'os';
 import * as fs from 'fs';
 import * as path from 'path';
 import { resolve } from 'path';
 import { promisify } from 'util';
+import rimraf from 'rimraf';
 
 const readdir = promisify(fs.readdir);
 const stat = promisify(fs.stat);
 
 export class StubFS {
-  private ready: Promise<string[]>;
   private storePath: string;
-  private newFiles: Map<string, string> = new Map();
+  private cachePath: string;
+  private onlyNamespaces: string[];
+  private newFiles = new Set<string>();
 
-  public constructor(workspacePath: string) {
+  public constructor(workspacePath: string, onlyNamespaces: string[]) {
     this.storePath = this.createStore(workspacePath);
-    this.ready = this.getFiles(this.storePath);
+    this.cachePath = fs.mkdtempSync(path.join(os.tmpdir(), 'gulp'));
+    this.onlyNamespaces = onlyNamespaces;
   }
 
   public newFile(filePath: string, contents: string): void {
-    this.newFiles.set(filePath, contents);
+    const target = path.join(this.cachePath, filePath);
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.writeFileSync(target, contents);
+    this.newFiles.add(filePath);
   }
 
   public async sync(): Promise<void> {
     // Overwrite files only if they have changed to reduce thrash
-    const allFiles = new Set(await this.ready);
-    this.newFiles.forEach((contents, filePath) => {
+    const allFiles = new Set(await this.getFiles(this.storePath));
+    this.newFiles.forEach(filePath => {
       const targetPath = path.join(this.storePath, filePath);
+      const contents = fs.readFileSync(targetPath, 'utf8');
       const directory = path.dirname(targetPath);
       fs.mkdirSync(directory, { recursive: true });
 
@@ -54,11 +62,24 @@ export class StubFS {
     // Remove any old files (and directories) we no longer need
     const directories = new Set<string>();
     allFiles.forEach(file => {
-      fs.unlinkSync(file);
-      directories.add(path.dirname(file));
+      let keep = false;
+      if (this.onlyNamespaces.length > 0) {
+        const relative = path.relative(this.storePath, file);
+        const first: string = relative.split(path.sep)[0];
+        if (this.onlyNamespaces.find(ns => ns == first) == undefined)
+          keep = true;
+      }
+      if (!keep) {
+        fs.unlinkSync(file);
+        directories.add(path.dirname(file));
+      }
     });
     this.rmDirs(Array.from(directories.values()));
     this.newFiles.clear();
+
+    // Reset cache
+    rimraf.sync(this.cachePath, { disableGlob: true });
+    this.cachePath = fs.mkdtempSync(path.join(os.tmpdir(), 'gulp'));
   }
 
   private rmDirs(directories: string[]): void {

@@ -136,7 +136,8 @@ export class Gulp {
     workspacePath: string,
     logger: Logger,
     connection: JSConnection | null,
-    namespaces: string[] = []
+    namespaces: string[],
+    partialLoad: boolean
   ): Promise<void> {
     this.checkWorkspaceOrThrow(workspacePath);
     const localConnection =
@@ -169,7 +170,7 @@ export class Gulp {
     }
 
     const otherNamespaces = Array.from(uniqueNamespaces.keys());
-    const stubFS = new StubFS(workspacePath);
+    const stubFS = new StubFS(workspacePath, partialLoad ? namespaces : []);
 
     const labelsReader = new LabelReader(
       logger,
