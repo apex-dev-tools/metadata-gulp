@@ -60,12 +60,17 @@ export class StandardSObjectReader {
 
   private async writeByNamespace(namespace: string): Promise<void> {
     const standardObjectNames = await this.queryStandardObjects(namespace);
+    this.logger.debug(
+      `Found ${standardObjectNames.length} standard objects with custom fields for namespace ${namespace} `
+    );
+    if (standardObjectNames.length == 0) return;
     const tmpDir = await retrieve(this.connection, [
       {
         members: standardObjectNames,
         name: 'CustomObject',
       },
     ]);
+    this.logger.debug(`Retrieved standard objects for namespace ${namespace} `);
 
     try {
       const files = await getFiles(tmpDir);

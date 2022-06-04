@@ -84,6 +84,9 @@ export class FlowReader {
           ''
         );
       }
+      this.logger.debug(
+        `Loaded ${namespaceFlows.length} flows from namespace ${namespace}`
+      );
     });
   }
 }

@@ -30,7 +30,7 @@ export class ClassReader {
   private connection: Connection;
   private namespaces: string[];
   private stubFS: StubFS;
-  private queue = new PQueue({ concurrency: 15 });
+  private queue = new PQueue({ concurrency: 5 });
 
   public constructor(
     logger: Logger,
@@ -62,6 +62,9 @@ export class ClassReader {
   private async queryByNamespace(namespace: string): Promise<void[]> {
     // Try short cut via loading from ApexClass
     const validClasses = await this.getClassIds(namespace);
+    this.logger.debug(
+      `Found ${validClasses.length} classes in namespaces ${namespace}`
+    );
     const chunks = chunk(validClasses, 200);
     return this.queue.addAll(
       chunks.map(c => () => this.bulkLoadClassesSOAP(namespace, c))
@@ -124,6 +127,7 @@ export class ClassReader {
 
   private writeValid(namespace: string, classes: ClassInfoBody[]): void {
     const targetDirectory = namespace == null ? 'unmanaged' : namespace;
+    let count = 0;
     classes.forEach(cls => {
       const hasBody = cls.Body && cls.Body.length > 0 && cls.Body != '(hidden)';
       if (hasBody) {
@@ -131,8 +135,10 @@ export class ClassReader {
           path.join(targetDirectory, 'classes', `${cls.Name}.cls`),
           cls.Body
         );
+        count += 1;
       }
     });
+    this.logger.debug(`Loaded ${count} classes for namespace ${namespace}`);
   }
 }
 

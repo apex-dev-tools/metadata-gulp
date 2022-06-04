@@ -82,6 +82,9 @@ export class LabelReader {
         path.join(targetDirectory, 'CustomLabels.labels-meta.xml'),
         this.createLabels(namespaceLabels)
       );
+      this.logger.debug(
+        `Loaded ${namespaceLabels.length} labels from namespace ${namespace}`
+      );
     });
   }
 
