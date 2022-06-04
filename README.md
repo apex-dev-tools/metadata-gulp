@@ -31,6 +31,7 @@ This will return string | null on success or undefined if the Organization table
 
 ### History
 
+    1.2.0 - Fixes for class downloading, concurrent requests & memory usage
     1.1.1 - Fixes for SObject timeout and error on package without namespace
     1.1.0 - Fix handling for org aliases
     1.0.0 - Initial version

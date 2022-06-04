@@ -1,6 +1,6 @@
 {
   "name": "apexlink-gulp",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "Library for downloading Salesforce metdata suitable for use with apexlink",
   "author": {
     "name": "Kevin Jones",
@@ -10,7 +10,8 @@
   "main": "./lib/gulp.js",
   "license": "BSD-3-Clause",
   "files": [
-    "lib/**/*"
+    "lib/**/*",
+    "partner.wsdl.xml"
   ],
   "scripts": {
     "build": "tsc",
