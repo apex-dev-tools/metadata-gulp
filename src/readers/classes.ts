@@ -25,7 +25,6 @@ import {
 } from '../generated/partnerwsdl/client';
 
 export class ClassReader {
-  private static readonly MAX_INVALID = 50000;
   private logger: Logger;
   private connection: Connection;
   private namespaces: string[];
@@ -133,12 +132,21 @@ export class ClassReader {
       if (hasBody) {
         this.stubFS.newFile(
           path.join(targetDirectory, 'classes', `${cls.Name}.cls`),
-          cls.Body
+          this.correctBodyIssues(cls.Body)
         );
         count += 1;
       }
     });
     this.logger.debug(`Loaded ${count} classes for namespace ${namespace}`);
+  }
+
+  private static webServiceRegex = /@WebService\s*webService/g;
+  private static invocableRegEx = /^\s*@Invocable.*\(.*\)$/gm;
+
+  private correctBodyIssues(content: string): string {
+    return content
+      .replace(ClassReader.webServiceRegex, '')
+      .replace(ClassReader.invocableRegEx, '');
   }
 }
 
