@@ -47,6 +47,7 @@ To obtain the namespace & package description for packages with namespaces on th
 
 ### History
 
+    1.3.0 - Remove illegal @WebService and @Invocable for bad quoting in descriptions
     1.2.0 - Fixes for class downloading, concurrent requests & memory usage
     1.1.1 - Fixes for SObject timeout and error on package without namespace
     1.1.0 - Fix handling for org aliases
