@@ -34,6 +34,9 @@ import { getDefaultUsername } from '@apexdevtools/sfdx-auth-helper';
 
 export { Logger, LoggerStage } from './util/logger';
 
+// Re-export as a convenience
+export { getDefaultUsername } from '@apexdevtools/sfdx-auth-helper';
+
 export class NamespaceInfo {
   namespace: string;
   description: string;
