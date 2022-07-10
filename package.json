@@ -1,11 +1,11 @@
 {
-  "name": "apexlink-gulp",
-  "version": "1.3.0",
-  "description": "Library for downloading Salesforce metdata suitable for use with apexlink",
+  "name": "@apexdevtools/metadata-gulp",
+  "version": "2.0.0",
+  "description": "Downloader for Salesforce metadata to support Apex static analysis",
   "author": {
-    "name": "Kevin Jones",
-    "email": "nawforce@gmail.com",
-    "url": "https://github.com/nawforce"
+    "name": "Apex Dev Tools Team",
+    "email": "apexdevtools@gmail.com",
+    "url": "https://github.com/apex-dev-tools"
   },
   "main": "./lib/gulp.js",
   "license": "BSD-3-Clause",
@@ -17,7 +17,6 @@
     "build": "tsc",
     "clean": "rm -rf ./lib/",
     "cm": "cz",
-    "coverage": "codecov",
     "lint": "eslint ./src/ --fix",
     "prepare": "husky install",
     "semantic-release": "semantic-release",
@@ -30,7 +29,7 @@
     "url": "git+https://github.com/nawforce/apex-link-gulp.git"
   },
   "engines": {
-    "node": ">=12.0"
+    "node": ">=14.0"
   },
   "keywords": [
     "salesforce",
@@ -42,7 +41,7 @@
   },
   "homepage": "https://github.com/nawforce/apex-link-gulp#readme",
   "dependencies": {
-    "@salesforce/core": "2.37.1",
+    "@apexdevtools/sfdx-auth-helper": "1.0.3",
     "decompress": "4.2.1",
     "fast-xml-parser": "4.0.4",
     "jsforce": "1.11.0",
@@ -51,32 +50,33 @@
     "soap": "0.43.0"
   },
   "devDependencies": {
-    "@types/decompress": "^4.2.4",
-    "@types/jest": "^26.0.24",
-    "@types/jsforce": "^1.9.41",
-    "@types/node": "^12.20.11",
-    "@types/rimraf": "^3.0.2",
-    "@typescript-eslint/eslint-plugin": "^5.26.0",
-    "@typescript-eslint/parser": "^5.26.0",
-    "codecov": "^3.8.1",
-    "commitizen": "^4.2.4",
-    "cz-conventional-changelog": "^3.0.1",
-    "eslint": "^8.16.0",
-    "eslint-config-prettier": "^8.5.0",
-    "eslint-plugin-node": "^11.1.0",
-    "eslint-plugin-prettier": "^3.4.0",
-    "husky": "^6.0.0",
-    "jest": "^27.2.0",
-    "lint-staged": "^10.5.4",
-    "prettier": "^2.2.1",
-    "semantic-release": "^19.0.2",
-    "ts-jest": "^27.0.5",
-    "ts-node": "^10.2.1",
-    "typescript": "^4.3.0"
+    "@types/decompress": "4.2.4",
+    "@types/jsforce": "1.9.41",
+    "@types/rimraf": "3.0.2",
+    "@ryansonshine/commitizen": "4.2.8",
+    "@ryansonshine/cz-conventional-changelog": "3.3.4",
+    "@types/jest": "27.5.2",
+    "@types/node": "12.20.11",
+    "@typescript-eslint/eslint-plugin": "4.22.0",
+    "@typescript-eslint/parser": "4.22.0",
+    "conventional-changelog-conventionalcommits": "5.0.0",
+    "eslint": "7.25.0",
+    "eslint-config-prettier": "8.3.0",
+    "eslint-plugin-node": "11.1.0",
+    "eslint-plugin-prettier": "3.4.0",
+    "husky": "6.0.0",
+    "jest": "27.2.0",
+    "lint-staged": "10.5.4",
+    "patch-package": "6.4.7",
+    "prettier": "2.2.1",
+    "semantic-release": "19.0.2",
+    "ts-jest": "27.0.5",
+    "ts-node": "10.2.1",
+    "typescript": "4.2.4"
   },
   "config": {
     "commitizen": {
-      "path": "./node_modules/cz-conventional-changelog"
+      "path": "./node_modules/@ryansonshine/cz-conventional-changelog"
     }
   },
   "lint-staged": {
@@ -85,6 +85,46 @@
   "release": {
     "branches": [
       "main"
+    ],
+    "plugins": [
+      [
+        "@semantic-release/commit-analyzer",
+        {
+          "preset": "conventionalcommits",
+          "releaseRules": [
+            {
+              "type": "build",
+              "scope": "deps",
+              "release": "patch"
+            }
+          ]
+        }
+      ],
+      [
+        "@semantic-release/release-notes-generator",
+        {
+          "preset": "conventionalcommits",
+          "presetConfig": {
+            "types": [
+              {
+                "type": "feat",
+                "section": "Features"
+              },
+              {
+                "type": "fix",
+                "section": "Bug Fixes"
+              },
+              {
+                "type": "build",
+                "section": "Dependencies and Other Build Updates",
+                "hidden": false
+              }
+            ]
+          }
+        }
+      ],
+      "@semantic-release/npm",
+      "@semantic-release/github"
     ]
   }
 }
