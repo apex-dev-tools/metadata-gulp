@@ -41,7 +41,7 @@
   },
   "homepage": "https://github.com/nawforce/apex-link-gulp#readme",
   "dependencies": {
-    "@apexdevtools/sfdx-auth-helper": "1.0.2",
+    "@apexdevtools/sfdx-auth-helper": "1.0.3",
     "decompress": "4.2.1",
     "fast-xml-parser": "4.0.4",
     "jsforce": "1.11.0",
