@@ -30,7 +30,7 @@ import {
   InstalledPackages,
   SubscriberPackageVersion,
 } from './util/installedPackages';
-import { getDefaultUsername } from '@apexdevtools/sfdx-auth-helper/lib/src/Username';
+import { getDefaultUsername } from '@apexdevtools/sfdx-auth-helper';
 
 export { Logger, LoggerStage } from './util/logger';
 
