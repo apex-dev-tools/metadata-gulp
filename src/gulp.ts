@@ -22,8 +22,7 @@ import { LabelReader } from './readers/labels';
 import { CustomSObjectReader } from './readers/customSObjects';
 import { StubFS } from './util/stubfs';
 import { Logger } from './util/logger';
-import { Aliases, AuthInfo, Connection } from '@salesforce/core';
-import { ConfigUtil } from './util/configUtils';
+import { AuthInfo, Connection } from '@apexdevtools/sfdx-auth-helper';
 import { StandardSObjectReader } from './readers/standardSObjects';
 import { Connection as JSConnection } from 'jsforce';
 import { ctxError } from './util/error';
@@ -31,6 +30,7 @@ import {
   InstalledPackages,
   SubscriberPackageVersion,
 } from './util/installedPackages';
+import { getDefaultUsername } from '@apexdevtools/sfdx-auth-helper/lib/src/Username';
 
 export { Logger, LoggerStage } from './util/logger';
 
@@ -46,19 +46,6 @@ export class NamespaceInfo {
 
 export class Gulp {
   private POLL_TIMEOUT = 60 * 60 * 1000;
-
-  public async getDefaultUsername(
-    workspacePath: string
-  ): Promise<string | undefined> {
-    const usernameOrAlias = await ConfigUtil.getConfigValue(
-      workspacePath,
-      'defaultusername'
-    );
-    if (typeof usernameOrAlias == 'string') {
-      return (await Aliases.fetch(usernameOrAlias)) || usernameOrAlias;
-    }
-    return undefined;
-  }
 
   public async getOrgNamespace(
     workspacePath: string,
@@ -256,7 +243,7 @@ export class Gulp {
   private async getConnection(
     workspacePath: string
   ): Promise<JSConnection | null> {
-    const username = await this.getDefaultUsername(workspacePath);
+    const username = await getDefaultUsername(workspacePath);
     if (username !== undefined) {
       const connection = await Connection.create({
         authInfo: await AuthInfo.create({ username: username }),
