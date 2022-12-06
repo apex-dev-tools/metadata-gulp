@@ -1,6 +1,6 @@
 {
   "name": "@apexdevtools/metadata-gulp",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Downloader for Salesforce metadata to support Apex static analysis",
   "author": {
     "name": "Apex Dev Tools Team",
@@ -41,7 +41,7 @@
   },
   "homepage": "https://github.com/nawforce/apex-link-gulp#readme",
   "dependencies": {
-    "@apexdevtools/sfdx-auth-helper": "1.0.4",
+    "@apexdevtools/sfdx-auth-helper": "1.0.5",
     "decompress": "4.2.1",
     "fast-xml-parser": "4.0.4",
     "jsforce": "1.11.0",
@@ -69,7 +69,7 @@
     "lint-staged": "10.5.4",
     "patch-package": "6.4.7",
     "prettier": "2.2.1",
-    "semantic-release": "19.0.2",
+    "semantic-release": "19.0.5",
     "ts-jest": "27.0.5",
     "ts-node": "10.2.1",
     "typescript": "4.2.4"
