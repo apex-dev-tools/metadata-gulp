@@ -48,8 +48,8 @@ export class ClassReader {
       const allNamespaces = new Set<string>(this.namespaces);
       return this.queue
         .addAll(
-          [...allNamespaces].map(
-            namespace => () => this.queryByNamespace(namespace)
+          [...allNamespaces].map(namespace => () =>
+            this.queryByNamespace(namespace)
           )
         )
         .finally(() => this.logger.complete(LoggerStage.CLASSES));

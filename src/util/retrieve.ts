@@ -49,7 +49,7 @@ export async function retrieve(
 
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gulp'));
     const zipBuffer = Buffer.from(
-      (result as unknown as RetrieveResult).zipFile,
+      ((result as unknown) as RetrieveResult).zipFile,
       'base64'
     );
     await decompress(zipBuffer, tmpDir);
@@ -90,7 +90,7 @@ export async function retrievePackage(
 
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gulp'));
     const zipBuffer = Buffer.from(
-      (result as unknown as RetrieveResult).zipFile,
+      ((result as unknown) as RetrieveResult).zipFile,
       'base64'
     );
     await decompress(zipBuffer, tmpDir);
