@@ -10,8 +10,7 @@
   "main": "./lib/gulp.js",
   "license": "BSD-3-Clause",
   "files": [
-    "lib/**/*",
-    "partner.wsdl.xml"
+    "lib/**/*"
   ],
   "scripts": {
     "build": "tsc",
