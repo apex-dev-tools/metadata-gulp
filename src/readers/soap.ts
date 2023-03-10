@@ -12,8 +12,8 @@
     derived from this software without specific prior written permission.
  */
 
-import soapRequest from 'easy-soap-request';
 import { XMLParser } from 'fast-xml-parser';
+import { SOAPService } from './soapService';
 
 interface QueryReply<T> {
   'soapenv:Envelope': QueryEnvelope<T>;
@@ -43,6 +43,7 @@ interface Result<T> {
 }
 
 export async function query<T>(
+  service: SOAPService,
   query: string,
   url: string,
   sessionId: string
@@ -62,7 +63,7 @@ export async function query<T>(
     </soapenv:Envelope>`;
 
   // This throws on bad status
-  const { response } = await soapRequest({
+  const { response } = await service.soapRequest({
     url: url,
     headers: { SOAPAction: 'foobar', 'content-type': 'text/xml' },
     xml: msg,

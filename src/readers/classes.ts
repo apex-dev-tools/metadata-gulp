@@ -20,6 +20,7 @@ import { Logger, LoggerStage } from '../util/logger';
 import { ctxError } from '../util/error';
 import { default as PQueue } from 'p-queue';
 import { query } from './soap';
+import { createSOAPService } from './soapService';
 
 export class ClassReader {
   private logger: Logger;
@@ -98,6 +99,7 @@ export class ClassReader {
       const queryString = `Select Name, Body from ApexClass Where Id in (${idClause})`;
 
       const response = await query<ClassInfoBody>(
+        createSOAPService(),
         queryString,
         url,
         this.connection.accessToken
