@@ -96,7 +96,7 @@ export class ClassReader {
         this.connection.version,
       ].join('/');
       const idClause = ids.map(id => `'${id}'`).join(', ');
-      const queryString = `Select Name, Body from ApexClass Where Id in (${idClause})`;
+      const queryString = `Select Name, ApiVersion, Body from ApexClass Where Id in (${idClause})`;
 
       const response = await query<ClassInfoBody>(
         createSOAPService(),
@@ -124,6 +124,18 @@ export class ClassReader {
           path.join(targetDirectory, 'classes', `${cls['sf:Name']}.cls`),
           this.correctBodyIssues(cls['sf:Body'])
         );
+        this.stubFS.newFile(
+          path.join(
+            targetDirectory,
+            'classes',
+            `${cls['sf:Name']}.cls-meta.xml`
+          ),
+          this.correctBodyIssues(`<?xml version="1.0" encoding="UTF-8"?>
+<ApexClass xmlns="http://soap.sforce.com/2006/04/metadata">
+  <apiVersion>${cls['sf:ApiVersion']}.0</apiVersion>
+  <status>Active</status>
+</ApexClass>`)
+        );
         count += 1;
       }
     });
@@ -142,6 +154,7 @@ export class ClassReader {
 
 interface ClassInfoBody {
   'sf:Name': string;
+  'sf:ApiVersion': number;
   'sf:Body': string;
 }
 
