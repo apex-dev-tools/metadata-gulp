@@ -19,10 +19,8 @@ import { chunk } from '../util/arrays';
 import { Logger, LoggerStage } from '../util/logger';
 import { ctxError } from '../util/error';
 import { default as PQueue } from 'p-queue';
-import {
-  createClientAsync,
-  PartnerWsdlClient,
-} from '../generated/partnerwsdl/client';
+import { query } from './soap';
+import { createSOAPService } from './soapService';
 
 export class ClassReader {
   private logger: Logger;
@@ -92,47 +90,51 @@ export class ClassReader {
     ids: string[]
   ): Promise<void> {
     try {
-      const client = await this.createSOAPClient();
+      const url = [
+        this.connection.instanceUrl,
+        'services/Soap/u',
+        this.connection.version,
+      ].join('/');
       const idClause = ids.map(id => `'${id}'`).join(', ');
-      const results = await client.queryAsync({
-        queryString: `Select Name, Body from ApexClass Where Id in (${idClause})`,
-      });
-      const classes = results[0].result?.records as ClassInfoBody[];
+      const queryString = `Select Name, ApiVersion, Body from ApexClass Where Id in (${idClause})`;
+
+      const response = await query<ClassInfoBody>(
+        createSOAPService(),
+        queryString,
+        url,
+        this.connection.accessToken
+      );
+      const classes = response.result?.records || [];
       this.writeValid(namespace, classes);
     } catch (err) {
       throw ctxError(err, 'query chunk');
     }
   }
 
-  private async createSOAPClient(): Promise<PartnerWsdlClient> {
-    const client: PartnerWsdlClient = await createClientAsync(
-      path.join(__dirname, '..', '..', 'partner.wsdl.xml')
-    );
-    client.setEndpoint(
-      [
-        this.connection.instanceUrl,
-        'services/Soap/u',
-        this.connection.version,
-      ].join('/')
-    );
-    const sheader = {
-      SessionHeader: {
-        sessionId: this.connection.accessToken,
-      },
-    };
-    client.addSoapHeader(sheader, '', 'tns', 'urn:partner.soap.sforce.com');
-    return client;
-  }
-
   private writeValid(namespace: string, classes: ClassInfoBody[]): void {
     const targetDirectory = namespace == null ? 'unmanaged' : namespace;
     let count = 0;
     classes.forEach(cls => {
-      const hasBody = cls.Body && cls.Body.length > 0 && cls.Body != '(hidden)';
+      const hasBody =
+        cls['sf:Body'] &&
+        cls['sf:Body'].length > 0 &&
+        cls['sf:Body'] != '(hidden)';
       if (hasBody) {
         this.stubFS.newFile(
-          path.join(targetDirectory, 'classes', `${cls.Name}.cls`),
-          this.correctBodyIssues(cls.Body)
+          path.join(targetDirectory, 'classes', `${cls['sf:Name']}.cls`),
+          this.correctBodyIssues(cls['sf:Body'])
+        );
+        this.stubFS.newFile(
+          path.join(
+            targetDirectory,
+            'classes',
+            `${cls['sf:Name']}.cls-meta.xml`
+          ),
+          this.correctBodyIssues(`<?xml version="1.0" encoding="UTF-8"?>
+<ApexClass xmlns="http://soap.sforce.com/2006/04/metadata">
+  <apiVersion>${cls['sf:ApiVersion']}.0</apiVersion>
+  <status>Active</status>
+</ApexClass>`)
         );
         count += 1;
       }
@@ -151,16 +153,11 @@ export class ClassReader {
 }
 
 interface ClassInfoBody {
-  Name: string;
-  Body: string;
+  'sf:Name': string;
+  'sf:ApiVersion': number;
+  'sf:Body': string;
 }
 
 interface ClassInfoId {
   Id: string;
-}
-
-export interface AnonymousResult {
-  success: boolean;
-  exceptionMessage?: string;
-  exceptionStackTrace?: string;
 }
