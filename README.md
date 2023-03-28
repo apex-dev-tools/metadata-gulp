@@ -42,6 +42,7 @@ To obtain the namespace & package description for packages with namespaces on th
 
 ### History
 
+    2.2.0 - Support webpack of library by removing need for wsdl file
     2.1.0 - Update README and dependency versions
     2.0.0 - Move to https://github.com/apex-dev-tools/metadata-gulp
     1.3.0 - Remove illegal @WebService and @Invocable for bad quoting in descriptions
