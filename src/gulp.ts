@@ -22,7 +22,6 @@ import { LabelReader } from './readers/labels';
 import { CustomSObjectReader } from './readers/customSObjects';
 import { StubFS } from './util/stubfs';
 import { Logger } from './util/logger';
-import { AuthInfo, Connection } from '@apexdevtools/sfdx-auth-helper';
 import { StandardSObjectReader } from './readers/standardSObjects';
 import { Connection as JSConnection } from 'jsforce';
 import { ctxError } from './util/error';
@@ -30,12 +29,9 @@ import {
   InstalledPackages,
   SubscriberPackageVersion,
 } from './util/installedPackages';
-import { getDefaultUsername } from '@apexdevtools/sfdx-auth-helper';
+import { AuthHelper } from '@apexdevtools/sfdx-auth-helper';
 
 export { Logger, LoggerStage } from './util/logger';
-
-// Re-export as a convenience
-export { getDefaultUsername } from '@apexdevtools/sfdx-auth-helper';
 
 export class NamespaceInfo {
   namespace: string;
@@ -56,7 +52,7 @@ export class Gulp {
   ): Promise<string | null | undefined> {
     this.checkWorkspaceOrThrow(workspacePath);
     const localConnection =
-      connection || ((await this.getConnection(workspacePath)) as JSConnection);
+      connection || (await this.getConnection(workspacePath));
 
     try {
       const organisations = await localConnection
@@ -76,7 +72,7 @@ export class Gulp {
   ): Promise<NamespaceInfo[]> {
     this.checkWorkspaceOrThrow(workspacePath);
     const localConnection =
-      connection || ((await this.getConnection(workspacePath)) as JSConnection);
+      connection || (await this.getConnection(workspacePath));
     if (localConnection == null)
       throw new Error('There is no default org available to query');
 
@@ -131,7 +127,7 @@ export class Gulp {
   ): Promise<void> {
     this.checkWorkspaceOrThrow(workspacePath);
     const localConnection =
-      connection || ((await this.getConnection(workspacePath)) as JSConnection);
+      connection || (await this.getConnection(workspacePath));
     if (localConnection == null) {
       throw new Error(
         'There is no default org available to load metadata from'
@@ -243,18 +239,8 @@ export class Gulp {
     );
   }
 
-  private async getConnection(
-    workspacePath: string
-  ): Promise<JSConnection | null> {
-    const username = await getDefaultUsername(workspacePath);
-    if (username !== undefined) {
-      const connection = await Connection.create({
-        authInfo: await AuthInfo.create({ username: username }),
-      });
-      return connection;
-    } else {
-      return null;
-    }
+  private async getConnection(workspacePath: string): Promise<JSConnection> {
+    return AuthHelper.instance(workspacePath).then(h => h.connectJsForce());
   }
 
   private checkWorkspaceOrThrow(workspacePath: string): void {

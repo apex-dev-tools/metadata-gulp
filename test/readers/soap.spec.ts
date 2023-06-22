@@ -14,7 +14,6 @@
 
 import { query } from '../../src/readers/soap';
 import {
-  createSOAPService,
   SOAPOptions,
   SOAPResponse,
   SOAPService,

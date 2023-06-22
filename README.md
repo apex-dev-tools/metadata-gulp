@@ -1,16 +1,20 @@
-# apexlink-gulp
+# metadata-gulp
 
 Salesforce metadata download library. Pulls metadata from an org in a format that can be used with [apex-ls](https://github.com/apex-dev-tools/apex-ls) based tools to perform off-line semantics analysis of Apex code.
 
+## Usage
+
 To start a download use update() from Gulp:
 
-    async update(
-      workspacePath: string,
-      logger: Logger,
-      connection: JSConnection | null,
-      namespaces: string[],
-      partialLoad: boolean
-    ): Promise<void>
+```ts
+async update(
+    workspacePath: string,
+    logger: Logger,
+    connection: JSConnection | null,
+    namespaces: string[],
+    partialLoad: boolean
+): Promise<void>
+```
 
 The workspacePath must be the directory where your sfdx-project.json file is located. The metadata is downloaded into a '.apexlink/gulp' directory relative to this.
 
@@ -22,35 +26,57 @@ The library also supplies some helper functions that you may find useful.
 
 To obtain the org's default namespace:
 
-    async getOrgNamespace(
-        workspacePath: string,
-        connection: JSConnection | null
-    ): Promise<string | null | undefined> {
+```ts
+async getOrgNamespace(
+    workspacePath: string,
+    connection: JSConnection | null
+): Promise<string | null | undefined>
+```
 
 This will return string | null on success or undefined if the Organization table can not be queried.
 
 To obtain the namespace & package description for packages with namespaces on the org:
 
-    async getOrgPackageNamespaces(
-        workspacePath: string,
-        connection: JSConnection | null
-    ): Promise<NamespaceInfo[]>
+```ts
+async getOrgPackageNamespaces(
+    workspacePath: string,
+    connection: JSConnection | null
+): Promise<NamespaceInfo[]>
+```
+
+## Development
 
 ### Building
 
-    npm run build
+This project uses the `pnpm` package manager.
 
-### History
+```txt
+  pnpm install
+  pnpm build
+```
 
-    2.2.0 - Support webpack of library by removing need for wsdl file
-    2.1.0 - Update README and dependency versions
-    2.0.0 - Move to https://github.com/apex-dev-tools/metadata-gulp
-    1.3.0 - Remove illegal @WebService and @Invocable for bad quoting in descriptions
-    1.2.0 - Fixes for class downloading, concurrent requests & memory usage
-    1.1.1 - Fixes for SObject timeout and error on package without namespace
-    1.1.0 - Fix handling for org aliases
-    1.0.0 - Initial version
+To run unit tests:
 
-### License
+```txt
+  pnpm test
+```
+
+To test bundling using webpack:
+
+```txt
+  pnpm test:pack
+  node test-bundle/bundle.js
+```
+
+This should execute without error.
+
+Execute manual test script with [`ts-node`](https://github.com/TypeStrong/ts-node#usage) using the run script:
+
+```txt
+  # Run gulp on a project with an existing default org
+  pnpm run:script -- ./src/scripts/main.ts <workspaceDir> <namespace | unmanaged>
+```
+
+## License
 
 All the source code included uses a 3-clause BSD license, see LICENSE for details.
