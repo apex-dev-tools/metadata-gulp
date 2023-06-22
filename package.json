@@ -1,6 +1,6 @@
 {
   "name": "@apexdevtools/metadata-gulp",
-  "version": "2.2.0",
+  "version": "3.0.0",
   "description": "Downloader for Salesforce metadata to support Apex static analysis",
   "author": {
     "name": "Apex Dev Tools Team",

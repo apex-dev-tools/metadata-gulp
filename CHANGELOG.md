@@ -1,5 +1,11 @@
 # metadata-gulp - Changelog
 
+## 3.0.0 - 2023-06-23
+
+* Upgrades `@apexdevtools/sfdx-auth-helper` and other dependencies.
+* Removes `getDefaultUsername` re-export. Use `AuthHelper` instance instead.
+* Now targets `ES2020`.
+
 ## Previous Releases
 
 * `2.2.0` - Support webpack of library by removing need for wsdl file
