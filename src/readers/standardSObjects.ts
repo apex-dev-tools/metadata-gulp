@@ -105,7 +105,7 @@ export class StandardSObjectReader {
           });
         });
     } finally {
-      rimraf.sync(tmpDir, { disableGlob: true });
+      rimraf.sync(tmpDir, { glob: false });
     }
   }
 
@@ -155,9 +155,10 @@ export class StandardSObjectReader {
         namespace == 'unmanaged'
           ? "ManageableState = 'unmanaged'"
           : `NamespacePrefix = '${namespace}'`;
-      const standardObjects = await this.connection.tooling.query<AggCustomField>(
-        `Select Count(Id), TableEnumOrId from CustomField where ${clause} Group By TableEnumOrId`
-      );
+      const standardObjects =
+        await this.connection.tooling.query<AggCustomField>(
+          `Select Count(Id), TableEnumOrId from CustomField where ${clause} Group By TableEnumOrId`
+        );
 
       return standardObjects.records
         .map(standardObject => standardObject.TableEnumOrId)

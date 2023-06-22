@@ -80,7 +80,7 @@ export class StubFS {
     this.newFiles.clear();
 
     // Reset cache
-    rimraf.sync(this.cachePath, { disableGlob: true });
+    rimraf.sync(this.cachePath, { glob: false });
     this.cachePath = fs.mkdtempSync(path.join(os.tmpdir(), 'gulp'));
   }
 

@@ -109,7 +109,7 @@ ${value.replace(/^<fields>\s/, '').replace(/\s<\/fields>$/, '')}
           });
         });
     } finally {
-      rimraf.sync(tmpDir, { disableGlob: true });
+      rimraf.sync(tmpDir, { glob: false });
     }
   }
 
