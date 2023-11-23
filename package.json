@@ -37,7 +37,7 @@
     "url": "https://github.com/apex-dev-tools/metadata-gulp/issues"
   },
   "homepage": "https://github.com/apex-dev-tools/metadata-gulp#readme",
-  "packageManager": "pnpm@8.2.0",
+  "packageManager": "pnpm@8.9.2",
   "dependencies": {
     "@apexdevtools/sfdx-auth-helper": "^2.0.0",
     "decompress": "^4.2.1",
