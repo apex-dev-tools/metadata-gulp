@@ -18,7 +18,7 @@ import { Connection } from 'jsforce';
 import { XMLParser } from 'fast-xml-parser';
 import { StubFS } from '../util/stubfs';
 import { ctxError } from '../util/error';
-import * as rimraf from 'rimraf';
+import { rimrafSync } from 'rimraf';
 import { CustomObjectDetail, EntityName, SObjectJSON } from '../util/entity';
 import { Logger, LoggerStage } from '../util/logger';
 import { getFiles, retrieve } from '../util/retrieve';
@@ -109,7 +109,7 @@ ${value.replace(/^<fields>\s/, '').replace(/\s<\/fields>$/, '')}
           });
         });
     } finally {
-      rimraf.sync(tmpDir, { glob: false });
+      rimrafSync(tmpDir, { glob: false });
     }
   }
 

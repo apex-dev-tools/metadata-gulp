@@ -16,10 +16,10 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { Connection } from 'jsforce';
 import { XMLParser } from 'fast-xml-parser';
+import { rimrafSync } from 'rimraf';
 import { StubFS } from '../util/stubfs';
 import { ctxError } from '../util/error';
 import { EntityName, SObjectJSON } from '../util/entity';
-import rimraf = require('rimraf');
 import { Logger, LoggerStage } from '../util/logger';
 import { getFiles, retrieve } from '../util/retrieve';
 
@@ -105,7 +105,7 @@ export class StandardSObjectReader {
           });
         });
     } finally {
-      rimraf.sync(tmpDir, { glob: false });
+      rimrafSync(tmpDir, { glob: false });
     }
   }
 

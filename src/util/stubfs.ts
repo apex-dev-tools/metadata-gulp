@@ -16,8 +16,8 @@ import * as os from 'os';
 import * as fs from 'fs';
 import * as path from 'path';
 import { resolve } from 'path';
+import { rimrafSync } from 'rimraf';
 import { promisify } from 'util';
-import rimraf from 'rimraf';
 
 const readdir = promisify(fs.readdir);
 const stat = promisify(fs.stat);
@@ -80,7 +80,7 @@ export class StubFS {
     this.newFiles.clear();
 
     // Reset cache
-    rimraf.sync(this.cachePath, { glob: false });
+    rimrafSync(this.cachePath, { glob: false });
     this.cachePath = fs.mkdtempSync(path.join(os.tmpdir(), 'gulp'));
   }
 
