@@ -1,5 +1,9 @@
 # metadata-gulp - Changelog
 
+## 3.0.1 - 2023-12-08
+
+* Fix crash from `rimraf` no longer having default export.
+
 ## 3.0.0 - 2023-06-23
 
 * Upgrades `@apexdevtools/sfdx-auth-helper` and other dependencies.
