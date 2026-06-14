@@ -12,18 +12,20 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up Node LTS
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 'lts/*'
 
       - name: Set up package manager
-        run: corepack enable pnpm
+        run: corepack enable
 
       - name: Build & Test
         run: |
-          pnpm install
+          pnpm install --no-frozen-lockfile
           pnpm build
+          pnpm lint
           pnpm test
+          pnpm test:pack

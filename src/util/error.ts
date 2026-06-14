@@ -12,7 +12,6 @@
     derived from this software without specific prior written permission.
  */
 
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export function ctxError(err: any, context: string): Error {
   if (err instanceof Error) {
     err.message = `${context}: ${err.message}`;

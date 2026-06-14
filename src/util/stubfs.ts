@@ -90,7 +90,7 @@ export class StubFS {
       try {
         fs.rmdirSync(dir);
         parents.add(path.dirname(dir));
-      } catch (err) {
+      } catch {
         // Not needed
       }
     });

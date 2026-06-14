@@ -1,6 +1,6 @@
 {
   "name": "@apexdevtools/metadata-gulp",
-  "version": "3.0.1",
+  "version": "3.0.2",
   "description": "Downloader for Salesforce metadata to support Apex static analysis",
   "author": {
     "name": "Apex Dev Tools Team",
@@ -17,8 +17,8 @@
     "build": "tsc",
     "clean": "rm -rf ./lib/",
     "commit": "cz",
-    "lint": "eslint ./src/ --fix",
-    "prepare": "husky install",
+    "lint": "eslint --cache --cache-location .eslintcache ./src --fix",
+    "prepare": "husky",
     "run:script": "ts-node-transpile-only",
     "test": "jest --coverage",
     "test:pack": "webpack --mode production --devtool hidden-source-map",
@@ -37,9 +37,12 @@
     "url": "https://github.com/apex-dev-tools/metadata-gulp/issues"
   },
   "homepage": "https://github.com/apex-dev-tools/metadata-gulp#readme",
-  "packageManager": "pnpm@8.9.2",
+  "packageManager": "pnpm@10.23.0",
+  "engines": {
+    "node": "^20.19.0 || ^22.13.0 || >=24"
+  },
   "dependencies": {
-    "@apexdevtools/sfdx-auth-helper": "^2.0.0",
+    "@apexdevtools/sfdx-auth-helper": "^2.1.1",
     "decompress": "^4.2.1",
     "easy-soap-request": "^5.3.0",
     "fast-xml-parser": "^4.2.4",
@@ -48,28 +51,25 @@
     "rimraf": "^5.0.1"
   },
   "devDependencies": {
-    "@types/decompress": "^4.2.4",
-    "@types/jsforce": "^1.11.0",
+    "@eslint/js": "^10.0.1",
+    "@types/decompress": "^4.2.7",
+    "@types/jsforce": "^1.11.6",
     "@ryansonshine/commitizen": "^4.2.8",
     "@ryansonshine/cz-conventional-changelog": "^3.3.4",
-    "@types/jest": "^29.5.0",
-    "@types/node": "^18.15.11",
-    "@types/easy-soap-request": "^4.1.1",
-    "@typescript-eslint/eslint-plugin": "^5.57.1",
-    "@typescript-eslint/parser": "^5.57.1",
-    "eslint": "^8.37.0",
-    "eslint-config-prettier": "^8.8.0",
-    "eslint-plugin-node": "^11.1.0",
-    "eslint-plugin-prettier": "^4.2.1",
-    "husky": "^8.0.3",
-    "jest": "^29.5.0",
-    "lint-staged": "^13.2.1",
-    "prettier": "^2.8.7",
-    "ts-jest": "^29.1.0",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^22.19.17",
+    "eslint": "^10.2.1",
+    "eslint-config-prettier": "^10.1.8",
+    "husky": "^9.1.7",
+    "jest": "^30.3.0",
+    "lint-staged": "^17.0.2",
+    "prettier": "^3.8.3",
+    "ts-jest": "^29.4.5",
     "ts-node": "^10.9.1",
-    "typescript": "^4.9.5",
-    "webpack": "^5.84.1",
-    "webpack-cli": "^5.1.1"
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.59.0",
+    "webpack": "^5.103.0",
+    "webpack-cli": "^6.0.1"
   },
   "config": {
     "commitizen": {

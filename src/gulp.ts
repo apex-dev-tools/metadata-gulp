@@ -31,7 +31,8 @@ import {
 } from './util/installedPackages';
 import { AuthHelper } from '@apexdevtools/sfdx-auth-helper';
 
-export { Logger, LoggerStage } from './util/logger';
+export { LoggerStage } from './util/logger';
+export type { Logger } from './util/logger';
 
 export class NamespaceInfo {
   namespace: string;
