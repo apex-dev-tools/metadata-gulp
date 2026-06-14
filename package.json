@@ -1,6 +1,6 @@
 {
   "name": "@apexdevtools/metadata-gulp",
-  "version": "3.0.1",
+  "version": "3.0.2",
   "description": "Downloader for Salesforce metadata to support Apex static analysis",
   "author": {
     "name": "Apex Dev Tools Team",
@@ -42,7 +42,7 @@
     "node": "^20.19.0 || ^22.13.0 || >=24"
   },
   "dependencies": {
-    "@apexdevtools/sfdx-auth-helper": "^2.1.0",
+    "@apexdevtools/sfdx-auth-helper": "^2.1.1",
     "decompress": "^4.2.1",
     "easy-soap-request": "^5.3.0",
     "fast-xml-parser": "^4.2.4",
