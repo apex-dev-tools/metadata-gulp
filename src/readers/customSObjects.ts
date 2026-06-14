@@ -175,7 +175,7 @@ ${value.replace(/^<fields>\s/, '').replace(/\s<\/fields>$/, '')}
         .map(customObject =>
           EntityName.applySObject(customObject.QualifiedApiName)
         )
-        .filter(sobjectName => sobjectName != null) as EntityName[];
+        .filter(sobjectName => sobjectName != null);
     } catch (err) {
       throw ctxError(err, 'query');
     }

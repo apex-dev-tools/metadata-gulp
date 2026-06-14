@@ -13,39 +13,12 @@
  */
 
 import soapRequest from 'easy-soap-request';
+import { SoapRequestOptions, SoapResponse } from 'easy-soap-request';
 
 // Basic wrapper around easy-soap-service to mocking for testing
 
-export interface SOAPOptions {
-  /**
-   * endpoint URL
-   */
-  url: string;
-
-  /**
-   * HTTP headers, key-value dictionary
-   */
-  headers: Record<string, unknown>;
-
-  /**
-   *  SOAP envelope, can be read from file or passed as string
-   */
-  xml: string;
-
-  /**
-   * Milliseconds before timing out request
-   * @default 10000
-   */
-  timeout?: number | undefined;
-}
-
-export interface SOAPResponse {
-  response: {
-    headers: any;
-    body: any;
-    statusCode: number;
-  };
-}
+export type SOAPOptions = SoapRequestOptions;
+export type SOAPResponse = SoapResponse;
 
 export interface SOAPService {
   soapRequest(options: SOAPOptions): Promise<SOAPResponse>;
