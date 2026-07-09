@@ -1,5 +1,10 @@
 # metadata-gulp - Changelog
 
+## Next
+
+* **BREAKING**: This is expected to be released as the next major version because it raises the Node.js runtime requirement to Node 22.13 or newer.
+* Adopt `@apexdevtools/sfdx-auth-helper` 3.0.0.
+
 ## 3.0.2 - 2026-06-14
 
 * Refresh TypeScript, lint, test, package manager, and GitHub Actions tooling.
